@@ -303,12 +303,6 @@ const PLAN = {
   recomendacionPasos:"Realizar mín. 8000 pasos/día.",
   composicion:{fecha:"30/07/25",peso:"108.2 kg",imc:"33",grasa:"34.82 %",masaMagra:"71 kg"},
   seguimiento:"En mes y medio (6 semanas) — 2da semana de Octubre",
-  macros:{
-    proteina:{gr:153,kcal:612,pct:"26.4%",nota:"2.1 gr/Kg de MM (71 Kg)"},
-    grasas:{gr:97,kcal:873,pct:"37.6%",nota:"0.9 gr/Kg"},
-    cho:{gr:208,kcal:832,pct:"36%",nota:"1.92 gr/Kg · Fibra 33 gr"},
-    totalKcal:2317
-  },
   hidratacion:{
     metaLitros:3.5,
     formula:"35 ml x 100 Kg Aprox. = 3500 ml = 3,5 Lt",
@@ -321,18 +315,14 @@ const PLAN = {
     ]
   },
   suplementos:[
-    {id:"proteina",nombre:"Proteína Whey Isolate",detalle:"Consumir 1 Scoop al día."},
-    {id:"creatina",nombre:"Creatina Monohidratada",detalle:"Consumir diariamente 1 Scoop colmado (Aprox. 8 gr), incluso en los días que no entrenes. (único ingrediente)."},
-    {id:"probioticos",nombre:"Probióticos",detalle:"1 sobre diario en ayunas, disuelto en 1/2 vaso de agua. Previo a tomártelo, tómate un vaso de agua para alcalinizar el pH del estómago."},
-    {id:"omega3",nombre:"Omega 3",detalle:""},
-    {id:"magnesio",nombre:"Citrato de Magnesio",detalle:""}
+    {id:"proteina",nombre:"Proteína ISO",detalle:"1 Scoop al día."},
+    {id:"creatina",nombre:"Creatina Monohidratada",detalle:"Consumir diariamente 1 Scoop colmado (Aprox. 8 gr) disuelto en un vaso de agua, entrenes o no."}
   ],
-  notaProteinaPolvo:"PROTEÍNA EN POLVO: Si no te la tomas en la mañana luego de entrenar, te la puedes tomar de media mañana o de algo, tú eliges en qué momento tomártela; lo importante es que consumas el Scoop de Proteína en algún momento de tu día. También, si deseas, puedes dividir la toma en 2 (1/2 Scoop en la mañana y 1/2 Scoop en la tarde en los momentos que te da ansiedad de dulce o para hacer alguna receta/preparación).",
+  aguacateDiario:{
+    gramos:60,
+    texto:"60 gr al día (1/4 de un Aguacate Grande o 1/2 Aguacate Hass). Puedes comerlos en el almuerzo o en la cena, o repartir 30 g en el almuerzo y 30 g en el desayuno o la cena."
+  },
   comidas:{
-    postentreno:{
-      label:"Post-entreno", hora:"07:00", horario:"Esperar al menos 1 hora luego del entreno",
-      items:["1 Scoop de proteína + 1 Scoop colmado de Creatina Monohidratada (Aprox. 8 gr)","4 Cdas colmadas de Avena en hojuelas (40 gr)"]
-    },
     desayuno:{
       label:"Desayuno", hora:"08:00", horario:"8:00 – 9:00 am",
       grupos:[
@@ -341,23 +331,22 @@ const PLAN = {
           "3 huevos enteros + 1 loncha de Queso mozzarella o 1 tajada semigruesa de Cuajada (40 gr)",
           "3 huevos enteros + 2 tajadas de Jamón Serrano o de Jamón asado al horno (D1 empaque azul)",
           "3 huevos enteros + 2 Cdas soperas colmadas de yogurt griego sin azúcar (80 gr)",
-          "Yogurt griego sin azúcar – 5 Cdas soperas colmadas (200 gr) (Members Selection, Pasco, San Martin, Sketos)",
-          "3 tajadas de Jamón asado al horno (D1 empaque azul) o de Jamón Serrano + 2 lonchas de Queso mozzarella o 2 tajadas medianas de cuajada (80 gr)",
           "1 Scoop de proteína en polvo (ocasional, cuando no tengas tiempo para desayunar)"
         ]},
         {tipo:"Carbohidrato",nota:"(escoge solo UNA opción)",key:"carbohidrato",opciones:[
-          "Arepa de maíz – 1 grande (revisa que en los ingredientes no tenga azúcar, ni aceites vegetales)",
-          "Avena en hojuelas o granola sin azúcar – 5 cucharadas soperas colmadas (50 gr)",
-          "Pan de arroz, o de sagú, o de quinoa – 3 tajadas (depende de la marca. Algunas opciones: Mauka, Alimentos para la vida, Damar, Dushi, etc)",
-          "Plátano maduro – 1/2 unidad mediana (100 gr)"
+          "Arepa de maíz – 1 grande o 2 medianas",
+          "Avena en hojuelas o granola sin azúcar – 6 cucharadas soperas colmadas (60 gr)",
+          "Pan de arroz, o de sagú, o de quinoa – 4 tajadas (pan Mauka)",
+          "Plátano maduro – 1/2 unidad mediana (140 gr)",
+          "Yuca – 2 trozos medianos (160 gr)",
+          "Papa – 2 papas medianas (200 gr)"
         ]},
         {tipo:"Grasas",nota:"(escoge solo UNA opción)",key:"grasas",opciones:[
-          "Aceite de oliva – 1 Cda postrera (5 ml)",
-          "Ghee o Mantequilla de vaca – 1 Cda postrera (5 gr)",
-          "Aguacate – Hass 1/4 de unidad o Común 1/8 (40 g)",
-          "Maní, Almendras o Nueces – 1 puñado pequeño (10 gr)",
-          "Mantequilla de frutos secos (maní, almendras) – 1 Cda postrera colmada (15 gr)",
-          "Semillas de Chía o Linaza molida – 1 Cda sopera (para el yogurt, pancakes o avena)"
+          "Aceite de oliva – 2 Cdas postreras",
+          "Ghee o Mantequilla de vaca – 2 Cdas postreras",
+          "Aguacate – Hass 1/2 de unidad o Común 1/6 (40 g)",
+          "Maní, Almendras o Nueces – 1 puñado grande (15 gr)",
+          "Mantequilla de frutos secos (maní, almendras) – 1 Cda postrera colmada (15 gr)"
         ]}
       ],
       extras:[
@@ -370,43 +359,40 @@ const PLAN = {
       label:"Almuerzo", hora:"13:00", horario:"1:00 pm",
       grupos:[
         {tipo:"Proteína",nota:"(escoge solo UNA opción)",key:"proteina",opciones:[
-          "Pollo – 130 gr cocido o 160 gr crudo (una porción grande y gruesa, o 4 puñados de pollo desmechado, o 2 muslos o contramuslos medianos)",
-          "Carne de res magra o cerdo magra – 130 gr cocido o 160 gr crudo (una porción grande y gruesa, o 8 Cdas soperas si es carne molida o desmechada)",
-          "Pescado (salmón, tilapia, trucha, merluza, atún fresco, róbalo) – 150 gr cocido o 180 gr crudo (1 filete grande o 2 medianos)"
+          "Pollo – 170 gr cocido o 200 gr crudo (una porción grande y gruesa, o 5 puñados de pollo desmechado, o 2 muslos o contramuslos grandes)",
+          "Carne de res magra o cerdo magra – 170 gr cocido o 200 gr crudo (una porción grande y gruesa, o 6-7 Cdas soperas si es carne molida o desmechada)",
+          "Pescado (salmón, tilapia, trucha, atún fresco, etc) – 170 gr cocido o 200 gr crudo (1 filete grande o 2 medianos)"
         ]},
         {tipo:"Carbohidrato",nota:"(escoge UNA opción; si quieres 2, toma la mitad de cada una)",key:"carbohidrato",opciones:[
-          "Arroz blanco, parbolizado – 8 Cdas soperas (160 gr cocido)",
-          "Plátano maduro – 3/4 und grande (120 gr)",
-          "Plátano verde – 3/4 und grande (120 gr cocido)",
-          "Papa – 3 medianas o 2 grandes (240 gr cruda)",
-          "Papa criolla – 7-8 und medianas (260 gr cruda)",
-          "Yuca – 2 trozos medianos o 1 grande (120 gr crudo)",
-          "Pasta de arroz (El Dorado, Doria, Mauka), o pasta convencional de trigo – 1 pocillo chocolatero + 2/3 del pocillo de pasta cocida (160 gr cocidos o 60 gr cruda)",
-          "Frijoles, lentejas, garbanzos – 2 cucharones medianos, sin el líquido (220 gr cocido) (más el líquido de la sopa)"
+          "Arroz o Quinoa – 8 Cdas soperas (160 gr cocido)",
+          "Plátano maduro – 1/2 und grande (140 gr)",
+          "Plátano verde – 2/3 und grande (160 gr)",
+          "Papa – 2 medianas (200 gr)",
+          "Papa criolla – 6 und medianas (200 gr)",
+          "Yuca – 2 trozos medianos (160 gr)",
+          "Pasta de arroz (El Dorado, Doria, Mauka), o pasta convencional de trigo – 2 tazas de pasta cocida (160 gr cocidos)",
+          "Frijoles, lentejas, garbanzos – 2 cucharones medianos, sin el líquido (200 gr cocido)"
         ]},
         {tipo:"Grasas",nota:"(escoge solo UNA opción)",key:"grasas",opciones:[
-          "Aguacate – Hass 3/4 unid o Común 2/4 und mediana (90 gr)",
-          "Aceite de oliva/aguacate – 2 Cdas soperas (10 gr) (para cocinar y/o como vinagreta para la ensalada)",
-          "Ghee o Mantequilla clarificada – 2 Cditas dulceras (10 gr)"
+          "Aceite de oliva/aguacate – 3 Cdas postreras",
+          "Ghee o Mantequilla clarificada – 3 Cdas postreras"
         ]}
       ],
       extras:[
+        {tipo:"Aguacate diario",texto:"DIARIO: 60 gr (1/4 de un Aguacate Grande o 1/2 Aguacate Hass). Puedes comerte los 60 g en el almuerzo o en la cena, o 30 g en el almuerzo y 30 g en el desayuno o cena."},
         {tipo:"Vegetales",texto:"Consumo ilimitado (que ocupe la mitad de tu plato): hojas verdes (lechuga, mezclum, kale, espinaca, rúgula, acelga), tomate, cebolla, zuccini, pepino, apio, zanahoria, espárragos, brócoli, coliflor, champiñones, rábano, remolacha, arvejas, habichuelas, ahuyama, etc. También puedes hacer cremas, sopas o caldos de verdura. Entre más colorido tu plato, más nutrientes."},
         {tipo:"Bebida",texto:"Puedes tomar agua o soda con limón (endulzar con Stevia líquida), infusión de flor de jamaica o infusiones de fruta (como sandía, maracuyá, etc)."}
       ]
     },
     snack:{
-      label:"Snack tarde", hora:"15:00", horario:"3:00 a 4:00 pm",
+      label:"Snack", hora:"15:00", horario:"am o pm",
       grupos:[
-        {tipo:"Grasas",nota:"(escoge solo UNA opción)",key:"grasas",opciones:[
-          "Frutos secos (almendras, nueces, marañones, pistachos, maní) – 1 puñado grande (30 gr)",
-          "Mantequilla de algún fruto seco (almendras, marañón, maní, nueces) – 2 Cdas soperas (40 gr)",
-          "4 cuadros de chocolate de mínimo al 70% sin azúcar, endulzado con Stevia (40 gr) (leer ingredientes)"
+        {tipo:"Proteína",nota:"(escoge solo UNA opción)",key:"proteina",opciones:[
+          "1 Scoop de proteína (en agua) – puedes licuarla con la fruta si deseas"
         ]}
       ],
       extras:[
-        {tipo:"Fruta",texto:"Una porción de fruta a tu elección (1 manzana, 1 mandarina, 1 banano pequeño, 1 pera, 1 granadilla, un manotado grande de arándanos, 8-10 fresas, una taza de uvas, 1 kiwi grande, 1 tajada mediana de papaya, piña, melón o sandía, 1/2 mango grande, etc)."},
-        {tipo:"Nota",texto:"Si algunos días quedas con hambre, o tienes antojo o ansiedad por comer o por dulce, revisa la sección de Recetas: hay varias opciones que puedes incluir en estos casos."}
+        {tipo:"Fruta",texto:"Una porción de fruta a tu elección (1 manzana, 1 mandarina, 1 banano pequeño, 1 pera, 1 granadilla, un manotado grande de arándanos, 8-10 fresas, una taza de uvas, 1 kiwi grande, 1 tajada mediana de papaya, piña, melón o sandía, 1/2 mango grande, etc)."}
       ]
     },
     cena:{
@@ -416,26 +402,24 @@ const PLAN = {
           "3 huevos enteros",
           "2 huevos enteros + 2 tajadas de Jamón Serrano o de Jamón asado al horno (D1 empaque azul) o un puñado de pollo desmechado (30 gr cocido)",
           "2 huevos enteros + 1 loncha de Queso mozzarella o 1 tajada semigruesa de Cuajada (40 gr)",
-          "Pollo – 100 gr cocido o 130 gr crudo (una porción mediana, o 3 puñados de pollo desmechado, o 1 muslo o contramuslo grande)",
-          "Carne de res o cerdo magra – 100 gr cocido o 130 gr crudo (una porción mediana, o 5 Cdas soperas si es carne molida o desmechada)",
-          "Pescado (salmón, tilapia, trucha, merluza, atún fresco, róbalo) – 120 gr cocido o 150 gr crudo (1 filete mediano)"
+          "Pollo – 120 gr cocido o 150 gr crudo (una porción mediana, o 3 puñados de pollo desmechado, o 1 muslo o contramuslo grande)",
+          "Carne de res o cerdo magra – 120 gr cocido o 150 gr crudo (una porción mediana, o 4-5 Cdas soperas si es carne molida o desmechada)",
+          "Pescado (salmón, tilapia, trucha, atún fresco, etc) – 120 gr cocido o 150 gr crudo (1 filete mediano)"
         ]},
         {tipo:"Carbohidrato",nota:"(escoge solo UNA opción)",key:"carbohidrato",opciones:[
-          "Arepa de maíz – 1 mediana o 1/2 grande",
-          "Pan de arroz, o de sagú, o de quinoa – 2 tajadas (Mauka, Alimentos para la vida, Damar, Dushi, etc)",
-          "Arroz blanco, parbolizado – 5 Cdas soperas (100 g)",
-          "Plátano maduro – 2/3 und mediana (80 gr cocido)",
-          "Plátano verde – 2/3 und mediana (80 gr)",
-          "Papa – 2 medianas o 1 grande (150 gr cruda)",
-          "Papa criolla – 4-5 und medianas (160 gr cruda)",
-          "Yuca – 1 trozo mediano (80 gr crudo)",
-          "Galletas de arroz inflado – 6 und",
-          "Crispetas – 4 pocillos chocolateros de crispetas hechas (40 gr cocidas – 1 puñado de maíz) (hacerlas sin azúcar)"
+          "Arepa de maíz – 1 grande o 2 medianas",
+          "Pan de arroz, o de sagú – 4 tajadas (pan Mauka)",
+          "Arroz o Quinoa – 8 Cdas soperas (160 gr cocido)",
+          "Plátano maduro – 1/2 und grande (140 gr)",
+          "Plátano verde – 2/3 und grande (160 gr)",
+          "Papa – 2 medianas (200 gr)",
+          "Papa criolla – 6 und medianas (200 gr)",
+          "Yuca – 2 trozos medianos (160 gr)",
+          "Crispetas caseras – 6 pocillos chocolateros de crispetas hechas (60 gr cocidas) (hacerlas sin azúcar)"
         ]},
         {tipo:"Grasas",nota:"(escoge solo UNA opción)",key:"grasas",opciones:[
-          "Aguacate – Hass 1/2 unid o Común 1/4 und mediana (60 gr)",
-          "Aceite de oliva/aguacate – 1 + 1/2 Cda sopera (7.5 gr) (para cocinar y/o para la ensalada)",
-          "Ghee o Mantequilla de Vaca – 1 + 1/2 Cdita dulcera (8 gr)"
+          "Aceite de oliva/aguacate – 2 Cdas postreras",
+          "Ghee o Mantequilla clarificada – 2 Cdas postreras"
         ]}
       ],
       extras:[
@@ -528,7 +512,7 @@ const PLAN = {
   fraseFinalAutor:"Ana Espinosa — Nutricionista"
 };
 
-const MEAL_ORDER = ["postentreno","desayuno","almuerzo","snack","cena"];
+const MEAL_ORDER = ["desayuno","almuerzo","snack","cena"];
 
 /* =========================================================
    ICONS
@@ -591,14 +575,14 @@ function escapeHtml(s){
 function defaultDay(){
   return {
     meals:{
-      postentreno:{done:false},
       desayuno:{done:false, sel:{proteina:0, carbohidrato:0, grasas:0}},
       almuerzo:{done:false, sel:{proteina:0, carbohidrato:0, grasas:0}},
-      snack:{done:false, sel:{grasas:0}},
+      snack:{done:false, sel:{proteina:0}},
       cena:{done:false, sel:{proteina:0, carbohidrato:0, grasas:0}}
     },
     water:[false,false,false],
-    supplements:{proteina:false,creatina:false,probioticos:false,omega3:false,magnesio:false},
+    supplements:{proteina:false,creatina:false},
+    aguacate:false,
     habits:{entreno:false, pasos:"", sueno:""},
     activities:[],
     mood:null,
@@ -613,13 +597,13 @@ function dayExists(key){ return !!state.days[key]; }
 
 function dayItemsDone(day){
   return [
-    day.meals.postentreno.done,
     day.meals.desayuno.done,
     day.meals.almuerzo.done,
     day.meals.snack.done,
     day.meals.cena.done,
     day.water.every(Boolean),
-    Object.values(day.supplements).every(Boolean)
+    Object.values(day.supplements).every(Boolean),
+    !!day.aguacate
   ];
 }
 function dayPct(key){
@@ -729,6 +713,7 @@ function renderHoy(){
     html += renderMealCard(k, dateKey, "list", isToday);
   });
 
+  html += aguacateCardHtml(dateKey, day);
   html += hydrationCardHtml(dateKey, day);
   html += supplementsCardHtml(dateKey, day);
   html += habitsCardHtml(dateKey, day);
@@ -825,13 +810,23 @@ function renderMealBody(key, cfg, m, dateKey, done){
       html += `<div class="extra-note"><b>${e.tipo}</b>${escapeHtml(e.texto)}</div>`;
     });
   }
-  if(key==="postentreno"){
-    html += `<div class="extra-note">${escapeHtml(PLAN.notaProteinaPolvo)}</div>`;
-  }
-  html += `<button class="btn-primary ${done?'is-done':''}" data-action="toggle-meal" data-meal="${key}" data-date="${dateKey}">
+  html += `<button class="btn-primary ${done?'is-done':''}" data-action="toggle-meal" data-meal="${key}" data-date="${dateKey}"
     ${done?ICONS.check+' Completada':'Marcar como completada'}
   </button>`;
   return html;
+}
+
+function aguacateCardHtml(dateKey, day){
+  return `<div class="card">
+    <div class="meal-name" style="font-size:15px">Aguacate diario</div>
+    <div class="row-toggle">
+      <div class="row-text">
+        <div class="t">${PLAN.aguacateDiario.gramos} gr repartidos en el día</div>
+        <div class="d">${escapeHtml(PLAN.aguacateDiario.texto)}</div>
+      </div>
+      <button class="switch ${day.aguacate?'on':''}" data-action="toggle-aguacate" data-date="${dateKey}" aria-label="Aguacate diario"></button>
+    </div>
+  </div>`;
 }
 
 function hydrationCardHtml(dateKey, day){
@@ -979,16 +974,6 @@ function renderPlan(){
     <p class="small" style="margin-top:10px">Seguimiento: ${escapeHtml(PLAN.seguimiento)}</p>
   </div>`;
 
-  html += `<div class="section-label">Composición del plan</div>
-  <div class="card">
-    <div class="macro-grid">
-      <div class="macro-cell"><div class="n">${PLAN.macros.proteina.gr}g</div><div class="l">Proteína</div><div class="s">${PLAN.macros.proteina.pct}</div></div>
-      <div class="macro-cell"><div class="n">${PLAN.macros.grasas.gr}g</div><div class="l">Grasas</div><div class="s">${PLAN.macros.grasas.pct}</div></div>
-      <div class="macro-cell"><div class="n">${PLAN.macros.cho.gr}g</div><div class="l">Carbohidr.</div><div class="s">${PLAN.macros.cho.pct}</div></div>
-    </div>
-    <p class="small" style="margin-top:12px">Total: <b style="color:var(--ink)">${PLAN.macros.totalKcal} kcal</b> · ${escapeHtml(PLAN.macros.proteina.nota)} · ${escapeHtml(PLAN.macros.grasas.nota)} · ${escapeHtml(PLAN.macros.cho.nota)}</p>
-  </div>`;
-
   html += `<div class="section-label">Hidratación</div>
   <div class="card">
     <p>${escapeHtml(PLAN.hidratacion.formula)}</p>
@@ -1001,6 +986,11 @@ function renderPlan(){
   html += `<div class="section-label">Suplementación</div>
   <div class="card">
     ${PLAN.suplementos.map(s=>`<div class="recipe-item"><b>${s.nombre}</b>${s.detalle?': '+escapeHtml(s.detalle):''}</div>`).join("")}
+  </div>`;
+
+  html += `<div class="section-label">Aguacate diario</div>
+  <div class="card">
+    <p>${escapeHtml(PLAN.aguacateDiario.texto)}</p>
   </div>`;
 
   html += `<div class="section-label">Comidas y opciones</div>`;
@@ -1164,6 +1154,14 @@ document.addEventListener("click", (e)=>{
     const date = el.dataset.date, idx = +el.dataset.idx;
     const day = getDay(date);
     day.water[idx] = !day.water[idx];
+    saveState();
+    render();
+    return;
+  }
+  if(action==="toggle-aguacate"){
+    const date = el.dataset.date;
+    const day = getDay(date);
+    day.aguacate = !day.aguacate;
     saveState();
     render();
     return;
