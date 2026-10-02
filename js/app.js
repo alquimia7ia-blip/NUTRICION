@@ -73,14 +73,15 @@ const actions = {
     const kg = parseFloat(document.getElementById("in-kg").value.replace(",", "."));
     const fat = parseFloat((document.getElementById("in-fat").value || "").replace(",", "."));
     if (!(kg >= 30 && kg <= 300)) { toast("Escribe tu peso en kg (ej. 104.5)"); return; }
-    state.weighIns = state.weighIns.filter(w => w.date !== date);
+    const now = Date.now();
+    state.weighIns.forEach(w => { if (w.date === date && !w.deleted) { w.deleted = true; w.updatedAt = now; } });
     state.weighIns.push({ id: uid(), date, kg: +kg.toFixed(1), fat: fat > 0 ? +fat.toFixed(1) : null, updatedAt: Date.now() });
     saveState(); ui.sheet = null; haptic(); toast("Peso guardado"); render(); checkCelebrations();
   },
   delWeight: v => {
     if (!confirm("¿Borrar este registro de peso?")) return;
-    state.weighIns = state.weighIns.filter(w => w.id !== v);
-    state.deleted.weighIns.push(v);
+    const w = state.weighIns.find(x => x.id === v);
+    if (w) { w.deleted = true; w.updatedAt = Date.now(); }
     saveState(); render();
   },
   shareReport: async () => {
@@ -97,7 +98,7 @@ const actions = {
       if (p !== "granted") { toast("Permite las notificaciones para recibir recordatorios"); return; }
     }
     editSettings(s => { s.reminders.enabled = !s.reminders.enabled; });
-    if (state.settings.reminders.enabled && typeof onRemindersEnabled === "function") onRemindersEnabled();
+    if (typeof onRemindersChanged === "function") onRemindersChanged(state.settings.reminders.enabled);
     renderSheet();
   },
   export: () => {
@@ -163,6 +164,7 @@ async function notify(title, body, tag) {
 }
 function reminderTick() {
   const r = state.settings.reminders;
+  if (localStorage.getItem("miplan.push") === "1") return; // el servidor envía los avisos
   if (!r.enabled || !("Notification" in window) || Notification.permission !== "granted") return;
   const k = todayKey(), nm = nowMin();
   let fired = {};
@@ -184,6 +186,8 @@ function reminderTick() {
 
 /* ===================== INIT ===================== */
 function init() {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (state.settings.tz !== tz) editSettings(s => { s.tz = tz; });
   if (!state.settings.initialized) {
     state.settings.initialized = true;
     state.settings.seenBadges = earnedBadges().map(b => b.id);

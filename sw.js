@@ -1,5 +1,5 @@
-const CACHE = "miplan-v2-1";
-const SHELL = ["./", "index.html", "css/app.css", "js/plan.js", "js/core.js", "js/ui.js", "js/app.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon.svg"];
+const CACHE = "miplan-v2-2";
+const SHELL = ["./", "index.html", "css/app.css", "js/plan.js", "js/core.js", "js/ui.js", "js/app.js", "js/vendor/supabase-2.117.2.js", "js/sync.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon.svg"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

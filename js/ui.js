@@ -40,9 +40,9 @@ const I = {
   upload: S('<path d="M12 21V9M7 14l5-5 5 5M5 4h14"/>'),
   mail: S('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'),
   sync: S('<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 13a8 8 0 0 0 14.5 4.5L20 16M4 4v4h4M20 20v-4h-4"/>'),
-  face1: face('<path d="M8.5 16.5c2-2 5-2 7 0"/>'),
-  face2: face('<path d="M8.5 15.5h7"/>'),
-  face3: face('<path d="M8 14.5c2 2.5 6 2.5 8 0"/>'),
+  int1: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="14" width="4" height="6" rx="1" fill="currentColor"/><rect x="10" y="9" width="4" height="11" rx="1"/><rect x="16" y="4" width="4" height="16" rx="1"/></svg>`,
+  int2: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="14" width="4" height="6" rx="1" fill="currentColor"/><rect x="10" y="9" width="4" height="11" rx="1" fill="currentColor"/><rect x="16" y="4" width="4" height="16" rx="1"/></svg>`,
+  int3: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="14" width="4" height="6" rx="1" fill="currentColor"/><rect x="10" y="9" width="4" height="11" rx="1" fill="currentColor"/><rect x="16" y="4" width="4" height="16" rx="1" fill="currentColor"/></svg>`,
   faceA: face('<path d="M8.5 17c2-2.5 5-2.5 7 0"/>'),
   faceB: face('<path d="M8.5 16c2-1.2 5-1.2 7 0"/>'),
   faceC: face('<path d="M8.5 15.5h7"/>'),
@@ -310,7 +310,7 @@ function renderReport() {
 
 function renderWeight() {
   const base = baselineWeight();
-  const pts = [{ date: base.date, kg: base.kg, base: true }, ...[...state.weighIns].sort((a, b) => a.date.localeCompare(b.date))];
+  const pts = [{ date: base.date, kg: base.kg, base: true }, ...weighs().sort((a, b) => a.date.localeCompare(b.date))];
   const last = pts[pts.length - 1];
   let chart = "";
   if (pts.length >= 2) {
@@ -339,7 +339,7 @@ function renderWeight() {
       <div class="small muted" style="font-weight:700">${diff === null ? `Punto de partida (${fmtShort(base.date)})` : `${diff > 0 ? "+" : ""}${diff} kg desde el inicio (${base.kg} kg)`}</div></div>
       <button class="btn btn-primary" style="width:auto;padding:10px 14px;min-height:44px" data-a="sheet" data-v="weight">${I.plus} Peso</button></div>
     ${chart || '<p class="p">Registra tu peso cada 15 días para ver tu curva.</p>'}
-    ${state.weighIns.length ? `<div class="w-list" style="margin-top:8px">${[...state.weighIns].sort((a, b) => b.date.localeCompare(a.date)).map(w =>
+    ${weighs().length ? `<div class="w-list" style="margin-top:8px">${weighs().sort((a, b) => b.date.localeCompare(a.date)).map(w =>
       `<div class="w-item"><span>${fmtShort(w.date)}</span><span>${w.kg} kg${w.fat ? ` · ${w.fat}% grasa` : ""} <button class="del" data-a="delWeight" data-v="${w.id}" aria-label="Borrar">×</button></span></div>`).join("")}</div>` : ""}
   </div>`;
 }

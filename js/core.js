@@ -41,9 +41,9 @@ const WORKOUT_TYPES = [
   { id: "descanso", label: "Descanso activo", icon: "moon" }
 ];
 const INTENSITIES = [
-  { id: 1, label: "Suave", icon: "face1" },
-  { id: 2, label: "Media", icon: "face2" },
-  { id: 3, label: "Fuerte", icon: "face3" }
+  { id: 1, label: "Suave", icon: "int1" },
+  { id: 2, label: "Media", icon: "int2" },
+  { id: 3, label: "Fuerte", icon: "int3" }
 ];
 const DEFAULT_REMINDERS = {
   enabled: false,
@@ -81,8 +81,7 @@ function defaultState() {
     version: 2,
     days: {},
     weighIns: [],
-    settings: { name: "Salomón", reminders: structuredClone(DEFAULT_REMINDERS), routines: [], seenBadges: [], seenLevel: 1, updatedAt: 0 },
-    deleted: { weighIns: [] }
+    settings: { name: "Salomón", reminders: structuredClone(DEFAULT_REMINDERS), routines: [], seenBadges: [], seenLevel: 1, updatedAt: 0 }
   };
 }
 
@@ -129,7 +128,6 @@ function loadState() {
       s.settings = Object.assign(defaultState().settings, s.settings);
       s.settings.reminders = Object.assign(structuredClone(DEFAULT_REMINDERS), s.settings.reminders);
       s.settings.reminders.times = Object.assign({}, DEFAULT_REMINDERS.times, s.settings.reminders.times);
-      s.deleted = Object.assign({ weighIns: [] }, s.deleted);
       for (const k of Object.keys(s.days)) s.days[k] = normalizeDay(s.days[k]);
       return s;
     }
@@ -197,7 +195,8 @@ function workoutsInWeek(ws) {
   for (let i = 0; i < 7; i++) n += getDay(addDays(ws, i)).workouts.filter(w => w.type !== "descanso").length;
   return n;
 }
-function lastWeighIn() { return [...state.weighIns].sort((a, b) => a.date.localeCompare(b.date)).pop() || null; }
+const weighs = () => state.weighIns.filter(w => !w.deleted);
+function lastWeighIn() { return weighs().sort((a, b) => a.date.localeCompare(b.date)).pop() || null; }
 function weighInDue() {
   const last = lastWeighIn();
   if (!last) return true;
@@ -230,8 +229,8 @@ const BADGES = [
   { id: "racha60", name: "Racha 60", desc: "60 días seguidos", icon: "trophy", color: "#B37A00", test: () => bestStreak() >= 60 },
   { id: "agua7", name: "Hidratado", desc: "7 días con el agua completa", icon: "drop", color: "#2D9CDB", test: () => maxWaterRun() >= 7 },
   { id: "entreno4", name: "Semana activa", desc: `${WEEKLY_WORKOUT_GOAL} entrenos en una semana`, icon: "dumbbell", color: "#17B26A", test: () => maxWeekWorkouts() >= WEEKLY_WORKOUT_GOAL },
-  { id: "pesaje1", name: "Primer pesaje", desc: "Registra tu peso", icon: "scale", color: "#7B61FF", test: () => state.weighIns.length >= 1 },
-  { id: "pesaje4", name: "Seguimiento", desc: "4 pesajes registrados", icon: "scale", color: "#5A3FD9", test: () => state.weighIns.length >= 4 },
+  { id: "pesaje1", name: "Primer pesaje", desc: "Registra tu peso", icon: "scale", color: "#7B61FF", test: () => weighs().length >= 1 },
+  { id: "pesaje4", name: "Seguimiento", desc: "4 pesajes registrados", icon: "scale", color: "#5A3FD9", test: () => weighs().length >= 4 },
   { id: "nivel5", name: "Imparable", desc: "Llega al nivel 5", icon: "bolt", color: "#FF6A4D", test: () => levelInfo().n >= 5 }
 ];
 const earnedBadges = () => BADGES.filter(b => b.test());
@@ -254,8 +253,8 @@ function weeklyReport(ws) {
   const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
   const pcts = tracked.map(k => ({ k, p: dayPct(k) }));
   const best = pcts.reduce((a, b) => (b.p > (a ? a.p : -1) ? b : a), null);
-  const weekWeigh = state.weighIns.filter(w => w.date >= ws && w.date <= days[6]).sort((a, b) => a.date.localeCompare(b.date)).pop();
-  const prevWeigh = weekWeigh ? state.weighIns.filter(w => w.date < weekWeigh.date).sort((a, b) => a.date.localeCompare(b.date)).pop() || null : null;
+  const weekWeigh = weighs().filter(w => w.date >= ws && w.date <= days[6]).sort((a, b) => a.date.localeCompare(b.date)).pop();
+  const prevWeigh = weekWeigh ? weighs().filter(w => w.date < weekWeigh.date).sort((a, b) => a.date.localeCompare(b.date)).pop() || null : null;
 
   const ratios = [
     { id: "comidas", label: "Comidas", r: meals / (4 * n), tip: findRec("meal prep"), src: "Recomendaciones del plan" },
