@@ -218,3 +218,26 @@ const PLAN = {
 };
 
 const MEAL_ORDER = ["desayuno","almuerzo","snack","cena"];
+
+/* Resumen visual de cada opción: [ícono, nombre corto, cantidad]. Mismo orden que PLAN.comidas[...].grupos[...].opciones;
+   las cantidades salen del texto del plan, y el texto completo se muestra debajo de la opción elegida. */
+const OPCION_CORTA = {
+  desayuno: {
+    proteina: [["🥚", "4 huevos", "enteros"], ["🧀", "3 huevos + queso", "40 gr queso o cuajada"], ["🥓", "3 huevos + jamón", "2 tajadas"], ["🥣", "3 huevos + yogurt", "80 gr griego"], ["🥤", "Proteína en polvo", "1 scoop · ocasional"]],
+    carbohidrato: [["🫓", "Arepa", "1 grande o 2 medianas"], ["🥣", "Avena o granola", "60 gr"], ["🍞", "Pan de arroz", "4 tajadas"], ["🍌", "Plátano maduro", "140 gr"], ["🍠", "Yuca", "160 gr"], ["🥔", "Papa", "200 gr"]],
+    grasas: [["🫒", "Aceite de oliva", "2 Cdas postreras"], ["🧈", "Ghee o mantequilla", "2 Cdas postreras"], ["🥑", "Aguacate", "40 g"], ["🥜", "Maní o nueces", "15 gr"], ["🥜", "Mantequilla de maní", "15 gr"]]
+  },
+  almuerzo: {
+    proteina: [["🍗", "Pollo", "170 gr cocido"], ["🥩", "Res o cerdo", "170 gr cocido"], ["🐟", "Pescado", "170 gr cocido"]],
+    carbohidrato: [["🍚", "Arroz o quinoa", "160 gr cocido"], ["🍌", "Plátano maduro", "140 gr"], ["🍌", "Plátano verde", "160 gr"], ["🥔", "Papa", "200 gr"], ["🥔", "Papa criolla", "200 gr"], ["🍠", "Yuca", "160 gr"], ["🍝", "Pasta", "160 gr cocidos"], ["🫘", "Frijol, lenteja, garbanzo", "200 gr cocido"]],
+    grasas: [["🫒", "Aceite de oliva o aguacate", "3 Cdas postreras"], ["🧈", "Ghee o mantequilla", "3 Cdas postreras"]]
+  },
+  snack: {
+    proteina: [["🥤", "Proteína", "1 scoop en agua"]]
+  },
+  cena: {
+    proteina: [["🥚", "3 huevos", "enteros"], ["🥓", "2 huevos + jamón o pollo", "2 tajadas o 30 gr"], ["🧀", "2 huevos + queso", "40 gr queso o cuajada"], ["🍗", "Pollo", "120 gr cocido"], ["🥩", "Res o cerdo", "120 gr cocido"], ["🐟", "Pescado", "120 gr cocido"]],
+    carbohidrato: [["🫓", "Arepa", "1 grande o 2 medianas"], ["🍞", "Pan de arroz", "4 tajadas"], ["🍚", "Arroz o quinoa", "160 gr cocido"], ["🍌", "Plátano maduro", "140 gr"], ["🍌", "Plátano verde", "160 gr"], ["🥔", "Papa", "200 gr"], ["🥔", "Papa criolla", "200 gr"], ["🍠", "Yuca", "160 gr"], ["🍿", "Crispetas caseras", "60 gr · sin azúcar"]],
+    grasas: [["🫒", "Aceite de oliva o aguacate", "2 Cdas postreras"], ["🧈", "Ghee o mantequilla", "2 Cdas postreras"]]
+  }
+};

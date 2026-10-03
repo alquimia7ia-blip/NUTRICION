@@ -61,6 +61,11 @@ function render() {
   renderTabbar();
   const r = { hoy: renderHoy, plan: renderPlan, progreso: renderProgreso, registro: renderRegistro }[ui.tab];
   $screen().innerHTML = r();
+  // Deja visible la opción elegida en cada fila deslizable de comidas.
+  $screen().querySelectorAll(".opt-row").forEach(row => {
+    const on = row.querySelector(".on");
+    if (on) row.scrollLeft = Math.max(0, on.offsetLeft - row.offsetLeft - 24);
+  });
   renderSheet();
 }
 
@@ -223,11 +228,20 @@ function mealRow(m, k) {
 }
 function mealBody(m, k, withButton) {
   const cfg = PLAN.comidas[m], dm = getDay(k).meals[m];
-  let h = cfg.grupos.map(g => `<div class="grp">
-      <div class="grp-label">${g.tipo} <span class="grp-note">${g.nota}</span></div>
-      <select class="opt" data-a="opt" data-meal="${m}" data-group="${g.key}">
-        ${g.opciones.map((o, i) => `<option value="${i}" ${i === (dm.sel[g.key] ?? 0) ? "selected" : ""}>${esc(o)}</option>`).join("")}
-      </select></div>`).join("");
+  let h = cfg.grupos.map(g => {
+    const sel = dm.sel[g.key] ?? 0, cortas = (OPCION_CORTA[m] || {})[g.key] || [];
+    const nota = g.opciones.length < 2 ? "" : /mitad/.test(g.nota) ? "elige 1 · o mitad y mitad" : "elige 1";
+    return `<div class="grp">
+      <div class="grp-label">${g.tipo} <span class="grp-note">${nota}</span></div>
+      <div class="opt-row" role="radiogroup" aria-label="${g.tipo}">
+        ${g.opciones.map((o, i) => {
+          const [ic, t, q] = cortas[i] || ["🍽️", o.split(" – ")[0], ""];
+          return `<button class="opt-card ${i === sel ? "on" : ""}" role="radio" aria-checked="${i === sel}" data-a="opt" data-v="${m}|${g.key}|${i}">
+            <span class="opt-ic" aria-hidden="true">${ic}</span><span class="opt-t">${esc(t)}</span><span class="opt-q">${esc(q)}</span></button>`;
+        }).join("")}
+      </div>
+      <div class="opt-detail">${esc(g.opciones[sel] || "")}</div></div>`;
+  }).join("");
   if (cfg.extras && cfg.extras.length) h += `<details class="more"><summary>Ver indicaciones (${cfg.extras.map(e => e.tipo.toLowerCase()).join(", ")})</summary>${cfg.extras.map(e => `<div class="extra"><b>${e.tipo}</b>${esc(e.texto)}</div>`).join("")}</details>`;
   if (withButton) h += `<button class="btn ${dm.done ? "btn-done" : "btn-primary"}" style="margin-top:14px" data-a="meal" data-v="${m}">${dm.done ? I.check + " Completada" : "Marcar como completada"}</button>`;
   return h;

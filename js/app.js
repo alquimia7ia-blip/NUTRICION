@@ -35,6 +35,12 @@ const actions = {
   day: v => { const n = addDays(ui.date, +v); if (n <= todayKey()) { ui.date = n; ui.open.clear(); render(); } },
   today: () => { ui.date = todayKey(); render(); },
   openDay: v => { ui.date = v; ui.tab = "hoy"; render(); window.scrollTo(0, 0); },
+  opt: v => {
+    const [m, g, i] = v.split("|");
+    editDay(ui.date, d => { d.meals[m].sel[g] = +i; });
+    if (navigator.vibrate) navigator.vibrate(6);
+    render();
+  },
   openMeal: v => { ui.open.has(v) ? ui.open.delete(v) : ui.open.add(v); render(); },
   meal: v => toggleTask(d => { d.meals[v].done = !d.meals[v].done; }),
   water: v => toggleTask(d => { d.water[+v] = !d.water[+v]; }),
@@ -127,8 +133,7 @@ document.addEventListener("click", e => {
 
 document.addEventListener("change", e => {
   const el = e.target;
-  if (el.matches("select.opt")) editDay(ui.date, d => { d.meals[el.dataset.meal].sel[el.dataset.group] = +el.value; });
-  else if (el.matches('[data-a="remTime"]') && el.value) editSettings(s => { s.reminders.times[el.dataset.v] = el.value; });
+  if (el.matches('[data-a="remTime"]') && el.value) editSettings(s => { s.reminders.times[el.dataset.v] = el.value; });
   else if (el.id === "in-import" && el.files[0]) importFile(el.files[0]);
 });
 
