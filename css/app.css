@@ -97,6 +97,14 @@ h1,h2,h3,p{margin:0}
 .opt-card.on .opt-q{color:var(--green-dark)}
 .opt-card.on::after{content:"";position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;background:var(--green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/11px no-repeat}
 .opt-detail{margin-top:6px;font-size:11px;font-weight:600;color:var(--ink-soft);line-height:1.45}
+.plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.plan-tile{display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--r-sm);border:2px solid var(--line);background:#fff;color:var(--ink);font-family:var(--body);text-align:left;cursor:pointer}
+.plan-tile .opt-ic{font-size:24px;flex:0 0 auto}
+.plan-tile .opt-t,.plan-tile .opt-q{display:block}
+.plan-tile.on{border-color:var(--green);background:var(--green-light)}
+.plan-grid.mini{grid-template-columns:repeat(3,1fr)}
+.plan-grid.mini .plan-tile{flex-direction:column;gap:4px;text-align:center;padding:10px 6px}
+.plan-detail{background:var(--bg-soft);border-radius:var(--r-sm);padding:10px 12px;margin-top:8px}
 .extra{font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-top:10px}
 .extra b{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);margin-bottom:2px}
 .btn{width:100%;border:none;border-radius:16px;padding:14px;font-weight:800;font-size:14.5px;display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px}

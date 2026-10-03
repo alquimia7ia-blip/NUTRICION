@@ -41,6 +41,14 @@ const actions = {
     if (navigator.vibrate) navigator.vibrate(6);
     render();
   },
+  planOpt: (v, el) => {
+    // Solo lectura: se actualiza en el lugar para no cerrar el acordeón abierto.
+    const grp = el.closest(".grp"), det = grp.querySelector(".plan-detail"), was = el.classList.contains("on");
+    grp.querySelectorAll(".plan-tile.on").forEach(t => t.classList.remove("on"));
+    if (!was) el.classList.add("on");
+    det.textContent = was ? "" : el.dataset.full;
+    det.hidden = was;
+  },
   openMeal: v => { ui.open.has(v) ? ui.open.delete(v) : ui.open.add(v); render(); },
   meal: v => toggleTask(d => { d.meals[v].done = !d.meals[v].done; }),
   water: v => toggleTask(d => { d.water[+v] = !d.water[+v]; }),

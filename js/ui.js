@@ -242,9 +242,18 @@ function mealBody(m, k, withButton) {
       </div>
       <div class="opt-detail">${esc(g.opciones[sel] || "")}</div></div>`;
   }).join("");
-  if (cfg.extras && cfg.extras.length) h += `<details class="more"><summary>Ver indicaciones (${cfg.extras.map(e => e.tipo.toLowerCase()).join(", ")})</summary>${cfg.extras.map(e => `<div class="extra"><b>${e.tipo}</b>${esc(e.texto)}</div>`).join("")}</details>`;
+  h += extrasTiles(cfg);
   if (withButton) h += `<button class="btn ${dm.done ? "btn-done" : "btn-primary"}" style="margin-top:14px" data-a="meal" data-v="${m}">${dm.done ? I.check + " Completada" : "Marcar como completada"}</button>`;
   return h;
+}
+
+const EXTRA_ICON = { Verduras: "🥦", Vegetales: "🥦", Fruta: "🍎", Bebida: "🥤", "Aguacate diario": "🥑" };
+// Acompañantes de la comida (verduras, fruta, bebida…): tarjetas que muestran el texto del plan al tocarlas.
+function extrasTiles(cfg) {
+  if (!cfg.extras || !cfg.extras.length) return "";
+  return `<div class="grp"><div class="grp-label">Acompañantes <span class="grp-note">toca para ver</span></div>
+    <div class="plan-grid mini">${cfg.extras.map(e => `<button class="plan-tile" data-a="planOpt" data-full="${esc(e.texto)}"><span class="opt-ic" aria-hidden="true">${EXTRA_ICON[e.tipo] || "🍽️"}</span><span class="opt-t">${esc(e.tipo)}</span></button>`).join("")}</div>
+    <div class="opt-detail plan-detail" hidden></div></div>`;
 }
 
 /* ===================== PROGRESO ===================== */
@@ -369,8 +378,18 @@ function renderPlan() {
   h += MEAL_ORDER.map(m => {
     const c = PLAN.comidas[m];
     return `<details class="acc"><summary><span style="display:flex;align-items:center;gap:10px"><span class="meal-ico" style="width:34px;height:34px">${I[MEAL_ICON[m]]}</span>${c.label} · ${c.horario}</span></summary><div class="acc-body">
-      ${c.grupos.map(g => `<div class="grp"><div class="grp-label">${g.tipo} <span class="grp-note">${g.nota}</span></div><ul class="plain-list" style="margin-top:6px">${g.opciones.map(o => `<li>${esc(o)}</li>`).join("")}</ul></div>`).join("")}
-      ${(c.extras || []).map(e => `<div class="extra"><b>${e.tipo}</b>${esc(e.texto)}</div>`).join("")}</div></details>`;
+      <p class="small muted" style="margin-top:10px;font-weight:600">Toca una opción para ver el detalle completo.</p>
+      ${c.grupos.map(g => {
+        const cortas = (OPCION_CORTA[m] || {})[g.key] || [];
+        const nota = g.opciones.length < 2 ? "" : /mitad/.test(g.nota) ? "elige 1 · o mitad y mitad" : "elige 1";
+        return `<div class="grp"><div class="grp-label">${g.tipo} <span class="grp-note">${nota}</span></div>
+          <div class="plan-grid">${g.opciones.map((o, i) => {
+            const [ic, t, q] = cortas[i] || ["🍽️", o.split(" – ")[0], ""];
+            return `<button class="plan-tile" data-a="planOpt" data-full="${esc(o)}"><span class="opt-ic" aria-hidden="true">${ic}</span><span style="min-width:0"><span class="opt-t">${esc(t)}</span><span class="opt-q">${esc(q)}</span></span></button>`;
+          }).join("")}</div>
+          <div class="opt-detail plan-detail" hidden></div></div>`;
+      }).join("")}
+      ${extrasTiles(c)}</div></details>`;
   }).join("");
   h += `<div class="section-title">Hidratación · Suplementos · Aguacate</div>
   <div class="card"><p class="p">${esc(PLAN.hidratacion.formula)}</p><p class="p" style="margin-top:6px">${esc(PLAN.hidratacion.estrategia)}</p>
