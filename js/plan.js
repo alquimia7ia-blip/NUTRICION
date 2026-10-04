@@ -241,3 +241,26 @@ const OPCION_CORTA = {
     grasas: [["🫒", "Aceite de oliva o aguacate", "2 Cdas postreras"], ["🧈", "Ghee o mantequilla", "2 Cdas postreras"]]
   }
 };
+
+/* Resúmenes visuales del resto del plan: [ícono, título corto, dato]. El texto original se muestra al tocar. */
+const RESUMEN = {
+  objetivo: [["🔥", "Bajar grasa"], ["💪", "Cuidar el músculo"], ["🏃", "Rendimiento"], ["🌿", "Digestión y energía"]],
+  hidratacion: ["💧", "Agua", "3,5 L · 3 termos de 1 L"],
+  suplementos: { proteina: ["🥤", "Proteína ISO", "1 scoop al día"], creatina: ["💊", "Creatina", "8 gr al día"] },
+  aguacate: ["🥑", "Aguacate", "60 gr al día"],
+  bebidas: [["🥛", "Bebida vegetal", "sin azúcar"], ["🌺", "Jamaica", "en jarra"], ["🍓", "Infusión de frutas", "con hierbabuena"], ["🍋", "Agua o soda", "con limón"]],
+  recetas: {
+    desayuno: ["🍳", "🍅", "🥑", "🧇", "🫓", "🥣", "🥞", "🌯", "🍞", "🫐", "🥣", "🥤"],
+    almuerzo: ["💡", "🍌", "🍟", "🥔", "🥑", "🍌", "🍝", "🍝", "🍅", "🍚", "🥩", "🍯", "🌿", "🍗", "🐟", "🌿", "📝"],
+    snack: ["🥣", "🧀", "🍓", "🥞", "🥣", "🧀", "🥤", "🍌", "🍫"],
+    cena: ["🥪", "🍕", "🌮", "🍲", "🫓", "🍿", "🥦", "🥒", "🥗"]
+  },
+  recomendaciones: [
+    ["😊", "Disfruta el proceso"], ["🔁", "Las recaídas son normales"], ["🚫", "Evita ultraprocesados"], ["🌈", "Come variado"],
+    ["🛒", "Compra natural"], ["🏷️", "Lee los ingredientes"], ["✅", "Cumple tus porciones"], ["⚖️", "Usa una gramera"],
+    ["🏋️", "Entrena 4 veces por semana"], ["🍳", "Cocina saludable"], ["🤔", "¿Hambre o antojo?"], ["🗓️", "Fines de semana"],
+    ["🍽️", "Comer fuera o de viaje"], ["🍃", "Endulza con Stevia"], ["🧂", "Condimentos naturales"], ["🧘", "Maneja el estrés"],
+    ["🙏", "Come despacio y presente"], ["🥡", "Haz meal prep"], ["😴", "Duerme 7-8 horas"], ["💚", "Come sin culpa"],
+    ["↩️", "Retoma sin compensar"]
+  ]
+};

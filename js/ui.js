@@ -252,7 +252,13 @@ const EXTRA_ICON = { Verduras: "🥦", Vegetales: "🥦", Fruta: "🍎", Bebida:
 function extrasTiles(cfg) {
   if (!cfg.extras || !cfg.extras.length) return "";
   return `<div class="grp"><div class="grp-label">Acompañantes <span class="grp-note">toca para ver</span></div>
-    <div class="plan-grid mini">${cfg.extras.map(e => `<button class="plan-tile" data-a="planOpt" data-full="${esc(e.texto)}"><span class="opt-ic" aria-hidden="true">${EXTRA_ICON[e.tipo] || "🍽️"}</span><span class="opt-t">${esc(e.tipo)}</span></button>`).join("")}</div>
+    ${tapTiles(cfg.extras.map(e => ({ ic: EXTRA_ICON[e.tipo] || "🍽️", t: e.tipo, q: "", full: e.texto })), "mini")}</div>`;
+}
+
+// Grilla de tarjetas (ícono + título + dato) que muestran el texto original del plan al tocarlas.
+function tapTiles(items, kind = "") {
+  return `<div class="tap-set"><div class="plan-grid ${kind}">${items.map(it => `<button class="plan-tile" data-a="planOpt" data-full="${esc(it.full)}">
+      <span class="opt-ic" aria-hidden="true">${it.ic}</span><span style="min-width:0"><span class="opt-t">${esc(it.t)}</span>${it.q ? `<span class="opt-q">${esc(it.q)}</span>` : ""}</span></button>`).join("")}</div>
     <div class="opt-detail plan-detail" hidden></div></div>`;
 }
 
@@ -325,11 +331,15 @@ function renderReport() {
       ${kpi("peso", "scale", r.weigh ? r.weigh.kg + " kg" : "—", r.prevWeigh ? `Antes ${r.prevWeigh.kg} kg` : "Peso de la semana")}
     </div>
     ${r.best ? `<p class="small" style="margin-top:12px;font-weight:700">Mejor día: <span style="text-transform:capitalize">${fmtLong(r.best.k)}</span> (${r.best.p}%)</p>` : ""}
-    ${r.lowest ? `<div class="tip"><div class="k">Lo que más te costó: ${r.lowest.label}</div><p>${esc(r.lowest.tip)}</p><div class="src">${r.lowest.src}</div></div>`
+    ${r.lowest ? `<details class="tip"><summary><span class="tip-ic" aria-hidden="true">${TIP_ICON[r.lowest.id] || "💡"}</span><span><span class="k">Lo que más te costó</span><b>${r.lowest.label}</b><span class="tip-more">Ver consejo del plan</span></span></summary><p>${esc(r.lowest.tip)}</p><div class="src">${r.lowest.src}</div></details>`
       : '<div class="tip" style="background:var(--green-light)"><div class="k" style="color:var(--green-dark)">Semana completa</div><p>Cumpliste todos los indicadores. Sigue así.</p></div>'}
     <button class="btn btn-ghost" style="margin-top:12px" data-a="shareReport">${I.share} Compartir reporte</button>`}
   </div>`;
 }
+
+// Nombre corto de una receta: su título del plan; las "Idea N" del snack toman sus primeros ingredientes.
+const recTitle = r => /^Idea \d+$/.test(r.t) ? r.d.split(/ \+ | con /)[0] : r.t.replace(/\.$/, "").split(" — ").pop();
+const TIP_ICON = { comidas: "🍽️", agua: "💧", suplementos: "💊", aguacate: "🥑", entreno: "🏋️", sueno: "😴" };
 
 function renderWeight() {
   const base = baselineWeight();
@@ -369,38 +379,63 @@ function renderWeight() {
 
 /* ===================== PLAN ===================== */
 function renderPlan() {
+  const R = RESUMEN, seg = PLAN.seguimiento.split("—").pop().trim();
+  const sup = PLAN.suplementos.map(x => { const [ic, t, q] = R.suplementos[x.id] || ["💊", x.nombre, ""]; return { ic, t, q, full: `${x.nombre}: ${x.detalle}` }; });
+  const recTabs = [["desayuno", "Desayuno"], ["almuerzo", "Almuerzo / Cena"], ["snack", "Snacks"], ["cena", "Cena"]];
   let h = `<div class="plan-banner"><div class="k">Plan de tu nutricionista</div><div class="v">${PLAN.nutricionista}</div></div>
-  <div class="card"><p class="p">${esc(PLAN.intro)}</p></div>
-  <div class="section-title">Objetivo</div>
-  <div class="card"><p class="p">${esc(PLAN.objetivo)}</p><p class="p" style="margin-top:8px;color:var(--ink);font-weight:800">${esc(PLAN.recomendacionPasos)}</p>
-    <p class="small muted" style="margin-top:8px;font-weight:600">Seguimiento: ${esc(PLAN.seguimiento)}</p></div>
+  <p class="small muted" style="font-weight:700;margin:-4px 2px 0">Toca cualquier tarjeta para ver el detalle del plan.</p>
+
+  <div class="section-title">Tu objetivo</div>
+  <div class="card">
+    <div class="goal-chips">${R.objetivo.map(([ic, t]) => `<span class="goal-chip"><span aria-hidden="true">${ic}</span>${t}</span>`).join("")}</div>
+    <div class="stat-grid">
+      <div class="stat"><span class="opt-ic" aria-hidden="true">👣</span><b>${STEPS_GOAL.toLocaleString("es")}</b><span>pasos al día</span></div>
+      <div class="stat"><span class="opt-ic" aria-hidden="true">💧</span><b>${String(PLAN.hidratacion.metaLitros).replace(".", ",")} L</b><span>de agua al día</span></div>
+      <div class="stat"><span class="opt-ic" aria-hidden="true">⚖️</span><b>${PLAN.composicion.peso}</b><span>inicio · ${PLAN.composicion.fecha}</span></div>
+      <div class="stat"><span class="opt-ic" aria-hidden="true">📅</span><b>Control</b><span>${esc(seg)}</span></div>
+    </div>
+    ${tapTiles([{ ic: "📖", t: "Leer intro y objetivo", q: "texto completo del plan", full: `${PLAN.intro}\n\nObjetivo: ${PLAN.objetivo}\n\n${PLAN.recomendacionPasos}\nSeguimiento: ${PLAN.seguimiento}` }], "single")}
+  </div>
+
   <div class="section-title">Comidas y opciones</div>`;
   h += MEAL_ORDER.map(m => {
     const c = PLAN.comidas[m];
     return `<details class="acc"><summary><span style="display:flex;align-items:center;gap:10px"><span class="meal-ico" style="width:34px;height:34px">${I[MEAL_ICON[m]]}</span>${c.label} · ${c.horario}</span></summary><div class="acc-body">
-      <p class="small muted" style="margin-top:10px;font-weight:600">Toca una opción para ver el detalle completo.</p>
       ${c.grupos.map(g => {
         const cortas = (OPCION_CORTA[m] || {})[g.key] || [];
         const nota = g.opciones.length < 2 ? "" : /mitad/.test(g.nota) ? "elige 1 · o mitad y mitad" : "elige 1";
         return `<div class="grp"><div class="grp-label">${g.tipo} <span class="grp-note">${nota}</span></div>
-          <div class="plan-grid">${g.opciones.map((o, i) => {
-            const [ic, t, q] = cortas[i] || ["🍽️", o.split(" – ")[0], ""];
-            return `<button class="plan-tile" data-a="planOpt" data-full="${esc(o)}"><span class="opt-ic" aria-hidden="true">${ic}</span><span style="min-width:0"><span class="opt-t">${esc(t)}</span><span class="opt-q">${esc(q)}</span></span></button>`;
-          }).join("")}</div>
-          <div class="opt-detail plan-detail" hidden></div></div>`;
+          ${tapTiles(g.opciones.map((o, i) => { const [ic, t, q] = cortas[i] || ["🍽️", o.split(" – ")[0], ""]; return { ic, t, q, full: o }; }))}</div>`;
       }).join("")}
       ${extrasTiles(c)}</div></details>`;
   }).join("");
-  h += `<div class="section-title">Hidratación · Suplementos · Aguacate</div>
-  <div class="card"><p class="p">${esc(PLAN.hidratacion.formula)}</p><p class="p" style="margin-top:6px">${esc(PLAN.hidratacion.estrategia)}</p>
-    ${PLAN.suplementos.map(s => `<p class="p" style="margin-top:8px"><b style="color:var(--ink)">${s.nombre}:</b> ${esc(s.detalle)}</p>`).join("")}
-    <p class="p" style="margin-top:8px"><b style="color:var(--ink)">Aguacate diario:</b> ${esc(PLAN.aguacateDiario.texto)}</p></div>
-  <details class="acc"><summary>Ideas de bebidas</summary><div class="acc-body"><ul class="plain-list">${PLAN.hidratacion.ideas.map(i => `<li>${esc(i)}</li>`).join("")}</ul></div></details>
+
+  h += `<div class="section-title">Agua · Suplementos · Aguacate</div>
+  <div class="card">${tapTiles([
+    { ic: R.hidratacion[0], t: R.hidratacion[1], q: R.hidratacion[2], full: `${PLAN.hidratacion.formula}\n${PLAN.hidratacion.estrategia}` },
+    ...sup,
+    { ic: R.aguacate[0], t: R.aguacate[1], q: R.aguacate[2], full: PLAN.aguacateDiario.texto }
+  ])}</div>
+
+  <div class="section-title">Ideas de bebidas</div>
+  <div class="card">${tapTiles(PLAN.hidratacion.ideas.map((full, i) => { const [ic, t, q] = R.bebidas[i]; return { ic, t, q, full }; }))}</div>
+
   <div class="section-title">Recetas</div>
-  ${[["Desayuno", "desayuno"], ["Almuerzo / Cena", "almuerzo"], ["Snacks", "snack"], ["Cena", "cena"]].map(([l, k]) =>
-    `<details class="acc"><summary>${l}</summary><div class="acc-body">${PLAN.recetas[k].map(r => `<p class="p" style="margin-bottom:8px">${r.d ? `<b style="color:var(--ink)">${esc(r.t)}:</b> ${esc(r.d)}` : esc(r.t)}</p>`).join("")}</div></details>`).join("")}
+  <div class="card">
+    <div class="chips rec-tabs" role="tablist">${recTabs.map(([k, l], i) => `<button class="chip ${i ? "" : "on"}" role="tab" data-a="recTab" data-v="${k}">${l}</button>`).join("")}</div>
+    ${recTabs.map(([k], i) => {
+      const list = PLAN.recetas[k].map((r, j) => ({ r, ic: R.recetas[k][j] }));
+      const notes = list.filter(x => /^(Tip general|Nota)$/.test(x.r.t));
+      const items = list.filter(x => !notes.includes(x));
+      return `<div class="rec-group" data-rec="${k}" ${i ? "hidden" : ""}>
+        ${notes.map(x => `<p class="rec-note"><span aria-hidden="true">${x.ic}</span> ${esc(x.r.d)}</p>`).join("")}
+        ${tapTiles(items.map(({ r, ic }) => ({ ic, t: recTitle(r), q: "", full: r.d ? `${r.t}: ${r.d}` : r.t })))}</div>`;
+    }).join("")}
+  </div>
+
   <div class="section-title">Recomendaciones</div>
-  <details class="acc"><summary>Leer recomendaciones</summary><div class="acc-body"><ul class="plain-list">${PLAN.recomendaciones.map(r => `<li>${esc(r)}</li>`).join("")}</ul></div></details>
+  <div class="card">${tapTiles(PLAN.recomendaciones.map((full, i) => { const [ic, t] = R.recomendaciones[i]; return { ic, t, q: "", full }; }))}</div>
+
   <p style="text-align:center;font-family:var(--display);font-weight:800;color:var(--green-dark);padding:14px 8px 4px;font-size:15px">${PLAN.fraseFinal}<br><span style="font-family:var(--body);font-size:12px;color:var(--ink-faint)">${PLAN.fraseFinalAutor}</span></p>`;
   return h;
 }
@@ -409,7 +444,7 @@ function renderPlan() {
 function renderRegistro() {
   const keys = Object.keys(state.days).sort().reverse();
   const color = p => p >= 100 ? ["var(--green)", "#fff"] : p >= STREAK_MIN_PCT ? ["var(--green-light)", "var(--green-dark)"] : p > 0 ? ["var(--gold-light)", "#8A5D00"] : ["var(--bg-soft)", "var(--ink-faint)"];
-  let h = `<div class="reg-banner">Tu registro personal. El plan de tu nutricionista no cambia: lo ves en la pestaña Plan.</div>`;
+  let h = `<div class="reg-banner"><span aria-hidden="true">📒</span> Tu historial día a día. Toca un día para verlo.</div>`;
   if (!keys.length) return h + `<div class="card"><p class="p">Aún no hay días registrados. Empieza marcando tu primera comida en Hoy.</p></div>`;
   h += `<div class="card" style="padding:4px 16px">${keys.map(k => {
     const d = getDay(k), p = dayPct(k), [bg, fg] = color(p);

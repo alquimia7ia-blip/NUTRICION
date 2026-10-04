@@ -43,11 +43,16 @@ const actions = {
   },
   planOpt: (v, el) => {
     // Solo lectura: se actualiza en el lugar para no cerrar el acordeón abierto.
-    const grp = el.closest(".grp"), det = grp.querySelector(".plan-detail"), was = el.classList.contains("on");
+    const grp = el.closest(".tap-set"), det = grp.querySelector(".plan-detail"), was = el.classList.contains("on");
     grp.querySelectorAll(".plan-tile.on").forEach(t => t.classList.remove("on"));
     if (!was) el.classList.add("on");
     det.textContent = was ? "" : el.dataset.full;
     det.hidden = was;
+  },
+  recTab: (v, el) => {
+    const card = el.closest(".card");
+    card.querySelectorAll(".rec-tabs .chip").forEach(c => c.classList.toggle("on", c === el));
+    card.querySelectorAll(".rec-group").forEach(g => { g.hidden = g.dataset.rec !== v; });
   },
   openMeal: v => { ui.open.has(v) ? ui.open.delete(v) : ui.open.add(v); render(); },
   meal: v => toggleTask(d => { d.meals[v].done = !d.meals[v].done; }),
