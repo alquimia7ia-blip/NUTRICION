@@ -5,7 +5,7 @@ const SB_URL = "https://vvfetmseundojflqdqov.supabase.co";
 const SB_KEY = "sb_publishable_DG_fpbUGzxRBD4jjKGgWRg_zQsBvJaV";
 const VAPID_PUBLIC = "BCLnXPhRv0fow2q4xopERKaBY9BvYg5IW9t_Y_EymOpxV70aG6JHPv2jd1Ys_aNoLIHf1xtJUOdCwQn-TJTegaw";
 const SYNC_META = "miplan.sync";
-const SYNCED_SETTINGS = ["name", "reminders", "routines", "seenBadges", "seenLevel", "initialized", "tz"];
+const SYNCED_SETTINGS = ["name", "reminders", "routines", "seenBadges", "seenLevel", "seenChallenges", "seededFitmao", "initialized", "tz"];
 
 const sync = { client: null, user: null, busy: false, timer: null, sentTo: "", status: "" };
 const syncMeta = () => { try { return JSON.parse(localStorage.getItem(SYNC_META) || "{}"); } catch { return {}; } };
@@ -44,7 +44,7 @@ async function syncNow() {
     // 1) Bajar todo y quedarse con lo más reciente (los datos son pequeños: ~1 fila por día).
     const [daysR, wR, sR] = await Promise.all([
       db.from("days").select("date, data, updated_at"),
-      db.from("weigh_ins").select("id, date, kg, fat, deleted, updated_at"),
+      db.from("weigh_ins").select("id, date, kg, fat, extra, deleted, updated_at"),
       db.from("settings").select("data, updated_at").maybeSingle()
     ]);
     if (daysR.error || wR.error || sR.error) throw daysR.error || wR.error || sR.error;
@@ -59,7 +59,7 @@ async function syncNow() {
     for (const row of wR.data) {
       const i = state.weighIns.findIndex(w => w.id === row.id);
       if (i < 0 || row.updated_at > (state.weighIns[i].updatedAt || 0)) {
-        const w = { id: row.id, date: row.date, kg: +row.kg, fat: row.fat === null ? null : +row.fat, deleted: row.deleted, updatedAt: row.updated_at };
+        const w = { id: row.id, date: row.date, kg: +row.kg, fat: row.fat === null ? null : +row.fat, extra: row.extra || null, deleted: row.deleted, updatedAt: row.updated_at };
         if (i < 0) state.weighIns.push(w); else state.weighIns[i] = w;
         changed = true;
       }
@@ -77,7 +77,7 @@ async function syncNow() {
       .map(([date, d]) => ({ date, data: d, updated_at: d.updatedAt }));
     if (dirtyDays.length) { const { error } = await db.from("days").upsert(dirtyDays, { onConflict: "user_id,date" }); if (error) throw error; }
     const dirtyW = state.weighIns.filter(w => (w.updatedAt || 0) > lastPush)
-      .map(w => ({ id: w.id, date: w.date, kg: w.kg, fat: w.fat ?? null, deleted: !!w.deleted, updated_at: w.updatedAt || startedAt }));
+      .map(w => ({ id: w.id, date: w.date, kg: w.kg, fat: w.fat ?? null, extra: w.extra || null, deleted: !!w.deleted, updated_at: w.updatedAt || startedAt }));
     if (dirtyW.length) { const { error } = await db.from("weigh_ins").upsert(dirtyW, { onConflict: "user_id,id" }); if (error) throw error; }
     if ((state.settings.updatedAt || 0) > lastPush) {
       const data = Object.fromEntries(SYNCED_SETTINGS.map(k => [k, state.settings[k]]));

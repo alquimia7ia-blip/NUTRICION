@@ -48,6 +48,13 @@ function checkCelebrations() {
     ui.sheet = { kind: "celebrate", icon: "bolt", color: "#17B26A", eyebrow: "Subiste de nivel", title: `Nivel ${lv.n} · ${lv.name}`, text: "Tu constancia está dando frutos. Sigue sumando días." };
     return renderSheet();
   }
+  const ch = weekChallenge(weekStart(todayKey()));
+  if (ch.done && !(state.settings.seenChallenges || []).includes(ch.ws)) {
+    editSettings(s => { s.seenChallenges = [...(s.seenChallenges || []), ch.ws]; });
+    confetti();
+    ui.sheet = { kind: "celebrate", icon: "trophy", color: "#F2B233", eyebrow: "Reto de la semana cumplido", title: ch.title, text: `+${CHALLENGE_XP} XP de premio. La constancia es lo que da resultados.` };
+    return renderSheet();
+  }
   const fresh = earnedBadges().find(b => !state.settings.seenBadges.includes(b.id));
   if (fresh) {
     editSettings(s => { s.seenBadges.push(fresh.id); });
@@ -132,16 +139,28 @@ const actions = {
     const kg = parseFloat(document.getElementById("in-kg").value.replace(",", "."));
     const fat = parseFloat((document.getElementById("in-fat").value || "").replace(",", "."));
     if (!(kg >= 30 && kg <= 300)) { toast("Escribe tu peso en kg (ej. 104.5)"); return; }
+    const extra = {};
+    FIT_FIELDS.forEach(f => { const v = parseFloat((document.getElementById("in-f-" + f.k)?.value || "").replace(",", ".")); if (v > 0) extra[f.k] = v; });
     const now = Date.now();
     state.weighIns.forEach(w => { if (w.date === date && !w.deleted) { w.deleted = true; w.updatedAt = now; } });
-    state.weighIns.push({ id: uid(), date, kg: +kg.toFixed(1), fat: fat > 0 ? +fat.toFixed(1) : null, updatedAt: Date.now() });
-    saveState(); ui.sheet = null; haptic(); toast("Peso guardado"); render(); checkCelebrations();
+    state.weighIns.push({ id: uid(), date, kg: +kg.toFixed(1), fat: fat > 0 ? +fat.toFixed(1) : null, extra: Object.keys(extra).length ? extra : null, updatedAt: Date.now() });
+    saveState(); ui.sheet = null; haptic(); toast(Object.keys(extra).length ? "Análisis guardado" : "Peso guardado"); render(); checkCelebrations();
   },
   delWeight: v => {
     if (!confirm("¿Borrar este registro de peso?")) return;
     const w = state.weighIns.find(x => x.id === v);
     if (w) { w.deleted = true; w.updatedAt = Date.now(); }
     saveState(); render();
+  },
+  informe: () => { ui.tab = "informe"; ui.sheet = null; render(); window.scrollTo(0, 0); },
+  infRange: v => { ui.infRange = +v; render(); },
+  printInforme: () => window.print(),
+  shareInforme: async () => {
+    const text = informeText(informeData(ui.infRange));
+    try {
+      if (navigator.share) await navigator.share({ title: "Informe de seguimiento", text });
+      else { await navigator.clipboard.writeText(text); toast("Informe copiado"); }
+    } catch (e) { if (e.name !== "AbortError") toast("No se pudo compartir"); }
   },
   shareReport: async () => {
     const text = reportText(weeklyReport(ui.reportWeek));
@@ -237,7 +256,7 @@ function reminderTick() {
   }
   if (weighInDue() && nm >= toMin("09:00") && !fired.ids.includes("peso")) {
     fired.ids.push("peso");
-    notify("Día de pesarte", "Registra tu peso para ver tu curva de progreso.", "peso");
+    notify("Hoy toca tu análisis Fitmao", "Misma máquina y en ayunas. Luego copia los datos en la app.", "peso");
   }
   localStorage.setItem(FIRED_KEY, JSON.stringify(fired));
 }
@@ -249,9 +268,13 @@ function init() {
   // El pesaje del análisis Fitmao queda como primer registro de peso (una sola vez).
   if (!state.settings.seededFitmao) {
     if (!weighs().some(w => w.date === COMPOSICION.fecha))
-      state.weighIns.push({ id: "fitmao-" + COMPOSICION.fecha, date: COMPOSICION.fecha, kg: COMPOSICION.peso.v, fat: COMPOSICION.pbf, updatedAt: Date.now() });
+      state.weighIns.push({ id: "fitmao-" + COMPOSICION.fecha, date: COMPOSICION.fecha, kg: COMPOSICION.peso.v, fat: COMPOSICION.pbf, extra: FIT_BASE_EXTRA(), updatedAt: Date.now() });
     editSettings(s => { s.seededFitmao = true; });
   }
+  const base = state.weighIns.find(w => w.id === "fitmao-" + COMPOSICION.fecha && !w.extra);
+  if (base) { base.extra = FIT_BASE_EXTRA(); base.updatedAt = Date.now(); saveState(); }
+  // Los retos ya ganados antes de esta versión no se celebran de nuevo.
+  if (!Array.isArray(state.settings.seenChallenges)) editSettings(s => { s.seenChallenges = challengesWon(); });
   if (!state.settings.initialized) {
     state.settings.initialized = true;
     state.settings.seenBadges = earnedBadges().map(b => b.id);

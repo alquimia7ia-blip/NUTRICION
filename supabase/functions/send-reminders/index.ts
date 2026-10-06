@@ -7,17 +7,19 @@ const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SE
 });
 
 const DEFAULT_TIMES: Record<string, string> = {
-  desayuno: "08:00", suplementos: "08:30", almuerzo: "13:00", snack: "15:30", cena: "18:00",
-  agua1: "10:00", agua2: "14:00", agua3: "18:30", agua4: "20:00", resumen: "19:00",
+  desayuno: "07:00", suplementos: "07:30", almuerzo: "12:30", snack: "16:00", entreno: "16:45", cena: "18:15",
+  agua1: "09:30", agua2: "13:30", agua3: "16:30", agua4: "19:30", dormir: "21:00", resumen: "19:00",
 };
 const WINDOW_MIN = 20;
 const WEIGH_EVERY_DAYS = 15;
+const WEEKLY_WORKOUT_GOAL = 4;
 
 type Day = {
   meals?: Record<string, { done?: boolean }>;
   water?: boolean[];
   supplements?: { proteina?: boolean; creatina?: boolean };
   aguacate?: boolean;
+  workouts?: { type?: string }[];
 };
 
 function localNow(tz: string) {
@@ -35,7 +37,7 @@ function localNow(tz: string) {
 }
 const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 
-function reminders(d: Day, times: Record<string, string>, sunday: boolean) {
+function reminders(d: Day, times: Record<string, string>, sunday: boolean, weekWorkouts: number) {
   const meal = (k: string) => !!d.meals?.[k]?.done;
   const w = d.water ?? [];
   const list = [
@@ -48,6 +50,8 @@ function reminders(d: Day, times: Record<string, string>, sunday: boolean) {
     { id: "agua2", pending: !w[1], title: "Termo del mediodía", body: "Vas por la mitad de tu meta de agua." },
     { id: "agua3", pending: !w[2], title: "Termo de la tarde", body: "Con este llegas a 3 L." },
     { id: "agua4", pending: !w[3], title: "Medio termo", body: "500 ml más y completas tus 3,5 L." },
+    { id: "entreno", pending: !(d.workouts?.length) && weekWorkouts < WEEKLY_WORKOUT_GOAL, title: "Hora de entrenar", body: "En 15 minutos empieza tu entreno. Regístralo al terminar." },
+    { id: "dormir", pending: true, title: "Prepárate para dormir", body: "En 30 minutos a la cama. El plan recomienda 7 – 8 horas." },
   ];
   if (sunday) list.push({ id: "resumen", pending: true, title: "Tu reporte semanal está listo", body: "Mira cómo te fue esta semana." });
   return list.map((r) => ({ ...r, at: times[r.id] ?? DEFAULT_TIMES[r.id] }));
@@ -104,8 +108,12 @@ Deno.serve(async (req) => {
     const times = { ...DEFAULT_TIMES, ...(settings.reminders.times ?? {}) };
     const { data: dayRow } = await sb.from("days").select("data").eq("user_id", userId).eq("date", now.date).maybeSingle();
     const day: Day = dayRow?.data ?? {};
+    // Entrenos de la semana (lunes a hoy) para no recordar entreno si ya cumplió la meta semanal.
+    const d0 = new Date(now.date + "T12:00:00Z"), ws = new Date(d0.getTime() - ((d0.getUTCDay() + 6) % 7) * 86400000).toISOString().slice(0, 10);
+    const { data: weekRows } = await sb.from("days").select("data").eq("user_id", userId).gte("date", ws).lte("date", now.date);
+    const weekWorkouts = (weekRows ?? []).reduce((a, r) => a + ((r.data as Day).workouts ?? []).filter((w) => w.type !== "descanso").length, 0);
 
-    for (const r of reminders(day, times, now.sunday)) {
+    for (const r of reminders(day, times, now.sunday, weekWorkouts)) {
       const at = toMin(r.at);
       if (!r.pending || now.min < at || now.min >= at + WINDOW_MIN) continue;
       if (await claim(userId, now.date, r.id)) sent += await sendTo(userId, { title: r.title, body: r.body, tag: r.id });
@@ -116,7 +124,7 @@ Deno.serve(async (req) => {
         .order("date", { ascending: false }).limit(1).maybeSingle();
       const due = !last || (Date.parse(now.date) - Date.parse(last.date)) / 86400000 >= WEIGH_EVERY_DAYS;
       if (due && await claim(userId, now.date, "peso")) {
-        sent += await sendTo(userId, { title: "Día de pesarte", body: "Registra tu peso para ver tu curva de progreso.", tag: "peso" });
+        sent += await sendTo(userId, { title: "Hoy toca tu análisis Fitmao", body: "Misma máquina y en ayunas. Luego copia los datos en la app.", tag: "peso" });
       }
     }
   }

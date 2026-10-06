@@ -53,13 +53,13 @@ const MEAL_ICON = { desayuno: "coffee", almuerzo: "plate", snack: "apple", cena:
 const MOODS = [["😣", "Mal"], ["😕", "Regular"], ["🙂", "Bien"], ["😄", "Muy bien"], ["🤩", "Genial"]];
 
 /* ===================== UI STATE ===================== */
-const ui = { tab: "hoy", date: todayKey(), open: new Set(), closed: new Set(), flash: null, regMonth: todayKey().slice(0, 7), sheet: null, reportWeek: weekStart(todayKey()) };
+const ui = { tab: "hoy", date: todayKey(), open: new Set(), closed: new Set(), flash: null, regMonth: todayKey().slice(0, 7), sheet: null, reportWeek: weekStart(todayKey()), infRange: 14 };
 const $screen = () => document.getElementById("screen");
 
 function render() {
   renderTop();
   renderTabbar();
-  const r = { hoy: renderHoy, plan: renderPlan, progreso: renderProgreso, registro: renderRegistro }[ui.tab];
+  const r = { hoy: renderHoy, plan: renderPlan, progreso: renderProgreso, registro: renderRegistro, informe: renderInforme }[ui.tab];
   $screen().innerHTML = r();
   // Deja visible la opción elegida en cada fila deslizable de comidas.
   $screen().querySelectorAll(".opt-row").forEach(row => {
@@ -106,11 +106,13 @@ function renderHoy() {
   if (isToday && weighInDue()) {
     const last = lastWeighIn();
     h += `<button class="alert" data-a="sheet" data-v="weight">${I.scale}
-      <div><div class="t">${last ? "Toca registrar tu peso" : "Registra tu primer peso"}</div>
-      <div class="d">${last ? `Último: ${last.kg} kg hace ${daysBetween(last.date, todayKey())} días` : "Cada 15 días verás tu curva de progreso"}</div></div></button>`;
+      <div><div class="t">Hoy toca tu análisis Fitmao</div>
+      <div class="d">${last ? `Último: ${num(last.kg)} kg hace ${daysBetween(last.date, todayKey())} días · misma máquina, en ayunas` : "Misma máquina, en ayunas. Luego copia los datos aquí"}</div></div></button>`;
   }
 
   h += heroCard(k);
+
+  h += challengeCard(k);
 
   if (pct === 100) h += `<div class="perfect">🎉 <div><b>¡Día perfecto!</b><span>Cumpliste todo el plan de hoy.</span></div></div>`;
 
@@ -181,6 +183,18 @@ function heroCard(k) {
   </div>`;
 }
 
+function challengeCard(k) {
+  const c = weekChallenge(weekStart(k)), left = daysBetween(k, addDays(weekStart(k), 6));
+  return `<div class="challenge ${c.done ? "won" : ""}">
+    <div class="ch-ic">${c.done ? "🏆" : c.ic}</div>
+    <div class="ch-body">
+      <div class="ch-k">${c.done ? "¡Reto cumplido!" : "Reto de la semana"}<span>+${CHALLENGE_XP} XP</span></div>
+      <div class="ch-t">${c.title}</div>
+      <div class="ch-dots">${[...Array(c.goal)].map((_, i) => `<i class="${i < c.n ? "on" : ""}"></i>`).join("")}<em>${c.n}/${c.goal}${c.done ? "" : ` · ${left === 0 ? "último día" : `quedan ${left} ${left === 1 ? "día" : "días"}`}`}</em></div>
+    </div>
+  </div>`;
+}
+
 function streakMsg(n) {
   if (n === 0) return "Hoy es un gran día para empezar";
   if (n < 3) return "Buen comienzo, sigue sumando";
@@ -214,7 +228,7 @@ function mealRow(m, k, nn = {}) {
       <button class="meal-info" data-a="openMeal" data-v="${m}" aria-expanded="${open}">
         <span class="meal-ico">${I[MEAL_ICON[m]]}</span>
         <span style="min-width:0;flex:1">
-          <span class="meal-name">${cfg.label} ${nn.now === m ? '<span class="tag">Ahora</span>' : ""}<span class="meal-time">${cfg.horario}</span></span>
+          <span class="meal-name">${cfg.label} ${nn.now === m ? '<span class="tag">Ahora</span>' : ""}<span class="meal-time">${fmtHour(mealTime(m))}</span></span>
           <span class="picks">${mealPicks(m, k)}<span class="picks-l">${done ? "Completada" : open ? "Elige abajo" : "Toca para cambiar"}</span></span>
         </span>
       </button>
@@ -301,6 +315,9 @@ function renderProgreso() {
     <div class="kpi-b green"><span>⭐</span><b>${Object.keys(state.days).filter(k => dayPct(k) === 100).length}</b><small>Días perfectos</small></div>
   </div>
 
+  <button class="inf-cta" data-a="informe"><span class="inf-ic">📋</span><span><b>Informe para tu nutricionista</b><small>Para ${PLAN.nutricionista.split(" ")[0]}: indicadores claros para ajustar tu plan · compártelo o guárdalo en PDF</small></span>${I.chevron}</button>
+  ${consistencyCard()}
+
   <div class="section-title">${secIcon("📊")} Últimos 7 días</div>
   <div class="card">
     <div class="week-bars">
@@ -328,6 +345,17 @@ function renderProgreso() {
       ${got ? '<div class="b-got">¡Lograda!</div>' : `<div class="b-prog"><i style="width:${bp}%;background:${b.color}"></i></div><div class="b-num">${Math.min(cur, goal)}/${goal}</div>`}</div>`;
   }).join("")}</div></div>`;
   return h;
+}
+
+function consistencyCard() {
+  const c = consistency(30), circ = 2 * Math.PI * 30, dash = c.pct / 100 * circ;
+  if (!c.total) return "";
+  return `<div class="card const">
+    <div class="rep-ring"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="30" fill="none" stroke="var(--coral-light)" stroke-width="9"/><circle cx="38" cy="38" r="30" fill="none" stroke="var(--coral)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${dash.toFixed(1)} ${(circ - dash).toFixed(1)}" transform="rotate(-90 38 38)"/></svg><b style="color:var(--coral-dark)">${c.pct}%</b></div>
+    <div style="flex:1;min-width:0"><div class="card-title">Constancia</div>
+      <div class="small muted" style="font-weight:700">${c.hit} de ${c.total} días cumpliste el ${STREAK_MIN_PCT}% o más${c.total < 30 ? "" : " (últimos 30)"}</div>
+      <div class="const-strip">${c.keys.map(k => `<i class="${dayCounts(k) ? "on" : dayPct(k) > 0 ? "mid" : ""}"></i>`).join("")}</div></div>
+  </div>`;
 }
 
 // Pasos y sueño de los últimos 7 días, con la meta del plan marcada.
@@ -426,7 +454,7 @@ function renderWeight() {
   <div class="card">
     <div class="card-head"><div><div class="card-title">${last.kg} kg</div>
       <div class="small muted" style="font-weight:700">${diff === null ? `Punto de partida (${fmtShort(base.date)})` : `${diff > 0 ? "+" : ""}${diff} kg desde el inicio (${base.kg} kg)`}</div></div>
-      <button class="btn btn-primary" style="width:auto;padding:10px 14px;min-height:44px" data-a="sheet" data-v="weight">${I.plus} Peso</button></div>
+      <button class="btn btn-primary" style="width:auto;padding:10px 14px;min-height:44px" data-a="sheet" data-v="weight">${I.plus} Análisis</button></div>
     ${chart || '<p class="p">Registra tu peso cada 15 días para ver tu curva.</p>'}
     ${weighs().length ? `<div class="w-list" style="margin-top:8px">${weighs().sort((a, b) => b.date.localeCompare(a.date)).map(w =>
       `<div class="w-item"><span>${fmtShort(w.date)}</span><span>${w.kg} kg${w.fat ? ` · ${w.fat}% grasa` : ""} <button class="del" data-a="delWeight" data-v="${w.id}" aria-label="Borrar">×</button></span></div>`).join("")}</div>` : ""}
@@ -472,29 +500,65 @@ function bodyFigure(kind) {
   </svg>`;
 }
 
+// Mini gráfica de línea para la evolución de un valor entre análisis.
+function sparkLine(pts, color, unit, d = 1) {
+  const W = 300, H = 78, L = 8, R = 8, T = 18, B = 16;
+  const vs = pts.map(p => p.v), lo = Math.min(...vs), hi = Math.max(...vs), span = hi - lo || 1;
+  const x = i => L + i / Math.max(1, pts.length - 1) * (W - L - R), y = v => T + (hi - v) / span * (H - T - B);
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(p.v).toFixed(1)}`).join(" ");
+  return `<svg viewBox="0 0 ${W} ${H}" class="spark" role="img">
+    <path d="${line}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${pts.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.v)}" r="4" fill="${color}" stroke="#fff" stroke-width="2"/><text x="${x(i)}" y="${y(p.v) - 8}" text-anchor="${i === 0 ? "start" : i === pts.length - 1 ? "end" : "middle"}" font-size="10.5" font-weight="800" fill="#14231A" font-family="Mulish, sans-serif">${num(p.v, d)}</text>
+      <text x="${x(i)}" y="${H - 3}" text-anchor="${i === 0 ? "start" : i === pts.length - 1 ? "end" : "middle"}" font-size="9.5" font-weight="700" fill="#A7B8AE" font-family="Mulish, sans-serif">${fmtShort(p.date)}</text>`).join("")}
+  </svg>`;
+}
+function deltaTag(k, d = 1) {
+  const f = FIT_FIELDS.find(x => x.k === k) || { better: k === "pbf" || k === "kg" ? "down" : "up" };
+  const dv = fitDelta(k);
+  if (dv === null || dv === 0) return "";
+  const good = (dv < 0) === (f.better === "down");
+  return `<span class="dtag ${good ? "good" : "bad"}">${dv < 0 ? "▼" : "▲"} ${num(Math.abs(dv), d)}</span>`;
+}
+
 function renderComposicion() {
-  const C = COMPOSICION, g = C.grasaKg.v, m = C.smm, resto = +(C.peso.v - g - m).toFixed(1);
+  const C = COMPOSICION, sc = fitScans(), F = sc[0], Lw = sc[sc.length - 1];
+  if (!Lw) return "";
+  const v = k => fitVal(Lw, k), g = v("grasaKg") ?? C.grasaKg.v, m = v("smm") ?? C.smm, kg = Lw.kg;
+  const resto = +(kg - g - m).toFixed(1);
   const seg = [["Grasa", g, "#FF8A5C"], ["Músculo esquelético", m, "#17B26A"], ["Agua, huesos y órganos", resto, "#9CD3F0"]];
-  const start = C.peso.v, goal = C.objetivo.peso, cur = (lastWeighIn() || { kg: start }).kg;
+  const start = F.kg, goal = C.objetivo.peso, cur = (lastWeighIn() || { kg: start }).kg;
   const lost = +(start - cur).toFixed(1), left = +(cur - goal).toFixed(1), gp = Math.max(0, Math.min(100, (start - cur) / (start - goal) * 100));
-  const scoreC = 2 * Math.PI * 24, scoreD = C.puntuacion / 100 * scoreC;
+  const score = v("puntuacion") ?? C.puntuacion, scoreC = 2 * Math.PI * 24, scoreD = score / 100 * scoreC;
+  const R = (k, base) => ({ ...base, v: v(k) ?? base.v });
+  const nextIn = Math.max(0, WEIGH_EVERY_DAYS - daysBetween(Lw.date, todayKey()));
+  const evo = sc.length >= 2 ? `<div class="comp-sub">Evolución entre análisis</div>
+    ${[["grasaKg", "🟠 Grasa (kg)", "#FF8A5C"], ["smm", "💪 Músculo esquelético (kg)", "#17B26A"], ["kg", "⚖️ Peso (kg)", "#2D9CDB"]].map(([k, l, c]) => {
+      const pts = sc.filter(w => fitVal(w, k) != null).map(w => ({ date: w.date, v: +fitVal(w, k) }));
+      return pts.length >= 2 ? `<div class="evo"><div class="evo-h"><span>${l}</span>${deltaTag(k)}</div>${sparkLine(pts, c)}</div>` : "";
+    }).join("")}` : "";
   return `<div class="section-title">${secIcon("🧬")} Composición corporal</div>
   <div class="card comp">
-    <div class="comp-head"><div><b>Análisis ${C.equipo}</b><span>${fmtLong(C.fecha)} · ${C.altura} cm · ${C.edad} años</span></div></div>
+    <div class="comp-head"><div><b>Último análisis ${C.equipo}</b><span>${fmtLong(Lw.date)} · ${sc.length} ${sc.length === 1 ? "análisis" : "análisis en total"}</span></div>
+      <button class="btn btn-primary comp-add" data-a="sheet" data-v="weight">${I.plus} Análisis</button></div>
+    <div class="next-scan ${nextIn === 0 ? "due" : ""}">${nextIn === 0 ? "📅 Hoy toca tu análisis en el Fitmao" : `📅 Próximo análisis en ${nextIn} ${nextIn === 1 ? "día" : "días"} · misma máquina, en ayunas`}</div>
 
     <div class="comp-tiles">
-      <div class="ct"><div class="ct-ring"><svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" fill="none" stroke="var(--green-light)" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="var(--green)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${scoreD.toFixed(1)} ${(scoreC - scoreD).toFixed(1)}" transform="rotate(-90 28 28)"/></svg><b>${num(C.puntuacion)}</b></div><small>Puntuación</small></div>
-      <div class="ct"><span class="ct-ic">🎂</span><b class="ct-v">${C.edadFisiologica}</b><small>Edad física<br><em>tu edad: ${C.edad}</em></small></div>
-      <div class="ct"><span class="ct-ic">🔥</span><b class="ct-v">${C.tmb.toLocaleString("es")}</b><small>kcal en reposo<br><em>metabolismo basal</em></small></div>
+      <div class="ct"><div class="ct-ring"><svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" fill="none" stroke="var(--green-light)" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="var(--green)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${scoreD.toFixed(1)} ${(scoreC - scoreD).toFixed(1)}" transform="rotate(-90 28 28)"/></svg><b>${num(score)}</b></div><small>Puntuación ${deltaTag("puntuacion")}</small></div>
+      <div class="ct"><span class="ct-ic">🎂</span><b class="ct-v">${num(v("edadFis") ?? C.edadFisiologica, 0)}</b><small>Edad física ${deltaTag("edadFis", 0)}<br><em>tu edad: ${C.edad}</em></small></div>
+      <div class="ct"><span class="ct-ic">🔥</span><b class="ct-v">${(v("tmb") ?? C.tmb).toLocaleString("es")}</b><small>kcal en reposo<br><em>metabolismo basal</em></small></div>
     </div>
 
-    <div class="comp-sub">¿De qué están hechos tus ${num(C.peso.v)} kg?</div>
-    <div class="stack" role="img" aria-label="Grasa ${num(g)} kg, músculo ${num(m)} kg, resto ${num(resto)} kg">${seg.map(([l, v, c]) => `<i style="flex:${v};background:${c}"></i>`).join("")}</div>
-    <div class="stack-legend">${seg.map(([l, v, c]) => `<span><i style="background:${c}"></i>${l}<b>${num(v)} kg</b></span>`).join("")}</div>
+    <div class="comp-sub">¿De qué están hechos tus ${num(kg)} kg?</div>
+    <div class="stack" role="img" aria-label="Grasa ${num(g)} kg, músculo ${num(m)} kg, resto ${num(resto)} kg">${seg.map(([l, val, c]) => `<i style="flex:${val};background:${c}"></i>`).join("")}</div>
+    <div class="stack-legend">
+      <span><i style="background:#FF8A5C"></i>Grasa<b>${num(g)} kg ${deltaTag("grasaKg")}</b></span>
+      <span><i style="background:#17B26A"></i>Músculo esquelético<b>${num(m)} kg ${deltaTag("smm")}</b></span>
+      <span><i style="background:#9CD3F0"></i>Agua, huesos y órganos<b>${num(resto)} kg</b></span>
+    </div>
     <div class="comp-mini">
-      <div><b>${num(C.pbf)}%</b><small>grasa corporal</small></div>
-      <div><b>${num(C.imc)}</b><small>IMC</small></div>
-      <div><b>${num(C.pesoSinGrasa.v)} kg</b><small>peso sin grasa</small></div>
+      <div><b>${Lw.fat != null ? num(Lw.fat) + "%" : "—"}</b><small>grasa corporal ${deltaTag("pbf")}</small></div>
+      <div><b>${num(v("imc") ?? C.imc)}</b><small>IMC ${deltaTag("imc")}</small></div>
+      <div><b>${num(kg)} kg</b><small>peso ${deltaTag("kg")}</small></div>
     </div>
 
     <div class="goal-card">
@@ -502,30 +566,106 @@ function renderComposicion() {
       <div class="gc-track"><i style="width:${gp.toFixed(1)}%"></i><span class="gc-flag">🏁</span></div>
       <div class="gc-lbls"><span>${num(start)} kg</span><span><b>${lost > 0 ? `−${num(lost)} kg` : "Empiezas hoy"}</b> · faltan ${num(Math.max(0, left))} kg</span><span>${num(goal)} kg</span></div>
     </div>
+    ${evo}
 
     <div class="comp-sub">Frente al rango normal del informe</div>
-    ${rangeBar("Grasa", "🟠", C.grasaKg, " kg")}
-    ${rangeBar("Grasa visceral", "🩺", C.visceral, "")}
-    ${rangeBar("Cintura-cadera", "📏", C.cinturaCadera, "", 2)}
-    ${rangeBar("Peso", "⚖️", C.peso, " kg")}
+    ${rangeBar("Grasa", "🟠", R("grasaKg", C.grasaKg), " kg")}
+    ${rangeBar("Grasa visceral", "🩺", R("visceral", C.visceral), "")}
+    ${rangeBar("Cintura-cadera", "📏", R("cc", C.cinturaCadera), "", 2)}
+    ${rangeBar("Peso", "⚖️", { ...C.peso, v: kg }, " kg")}
 
-    <div class="comp-sub">Por zonas del cuerpo</div>
+    <div class="comp-sub">Por zonas del cuerpo <span class="grp-note">informe del ${fmtShort(C.fecha)}</span></div>
     <div class="chips seg-tabs">${[["musculo", "💪 Músculo"], ["grasa", "🟠 Grasa"]].map(([k, l], i) => `<button class="chip ${i ? "" : "on"}" data-a="segTab" data-v="${k}">${l}</button>`).join("")}</div>
     ${["musculo", "grasa"].map((k, i) => `<div class="seg-fig" data-seg="${k}" ${i ? "hidden" : ""}>${bodyFigure(k)}</div>`).join("")}
 
-    <details class="comp-all"><summary>Ver todos los valores del informe</summary>
+    <details class="comp-all"><summary>Ver todos los valores del informe del ${fmtShort(C.fecha)}</summary>
       <div class="ca-list">${[
         ["Agua total", C.agua, " L"], ["Agua extracelular", C.ecf, " L"], ["Agua intracelular", C.icf, " L"],
         ["Proteínas", C.proteinas, " kg"], ["Minerales", C.minerales, " kg"], ["Volumen muscular", C.volumenMuscular, " kg"],
         ["Peso sin grasa", C.pesoSinGrasa, " kg"]
       ].map(([l, r, u]) => `<div class="ca-row"><span>${l}</span><b>${num(r.v)}${u}</b><small>${num(r.min)} – ${num(r.max)}</small></div>`).join("")}
-        <div class="ca-row"><span>Músculo esquelético</span><b>${num(C.smm)} kg</b><small></small></div>
         <div class="ca-row"><span>Mineral óseo</span><b>${num(C.oseo)} kg</b><small></small></div>
         <div class="ca-row"><span>Somatotipo</span><b>${C.somatotipo}</b><small>${C.recomendacion}</small></div>
       </div>
-      <p class="small muted" style="margin-top:8px;font-weight:600">Para comparar tu progreso, repite el análisis en el mismo equipo y en condiciones parecidas.</p>
     </details>
   </div>`;
+}
+
+/* ===================== INFORME PARA LA NUTRICIONISTA ===================== */
+function renderInforme() {
+  const r = informeData(ui.infRange), A = r.fitA, B = r.fitB, two = A && B && A !== B;
+  const pctCls = p => p >= 80 ? "ok" : p >= 50 ? "mid" : "low";
+  const hb = (ic, l, p, v) => `<div class="hbar ${pctCls(p)}"><span class="hb-ic">${ic}</span><span class="hb-l">${l}</span><span class="hb-track"><i style="width:${Math.max(p, p ? 4 : 0)}%"></i></span><span class="hb-v">${v ?? p + " %"}</span></div>`;
+  const wDelta = two ? +(B.kg - A.kg).toFixed(1) : null, gDelta = two ? fitVal(B, "grasaKg") - fitVal(A, "grasaKg") : null;
+  const sign = v => (v > 0 ? "+" : v < 0 ? "−" : "") + num(Math.abs(v));
+  const rows = [["Peso", "kg", " kg"], ["% grasa", "pbf", " %"], ...FIT_FIELDS.map(f => [f.label, f.k, f.unit, f.d ?? 1])];
+  const better = k => k === "kg" || k === "pbf" ? "down" : (FIT_FIELDS.find(f => f.k === k) || {}).better;
+  const wds = ["L", "M", "M", "J", "V", "S", "D"];
+  const wpts = r.weighs.map(w => ({ date: w.date, v: w.kg }));
+  return `<button class="inf-back" data-a="tab" data-v="progreso">${I.chevron} Progreso</button>
+  <div class="inf-head">
+    <div class="eyebrow" style="color:#fff;opacity:.85">Informe de seguimiento</div>
+    <div class="inf-name">${esc(state.settings.name)}</div>
+    <div class="inf-meta">Plan de ${PLAN.nutricionista} · ${fmtShort(r.from)} – ${fmtShort(r.to)} · ${r.n} ${r.n === 1 ? "día" : "días"}</div>
+    <div class="chips inf-range">${[[14, "2 semanas"], [30, "1 mes"], [0, "Todo"]].map(([v, l]) => `<button class="chip ${ui.infRange === v ? "on" : ""}" data-a="infRange" data-v="${v}">${l}</button>`).join("")}</div>
+  </div>
+
+  <div class="inf-kpis">
+    <div class="ik"><b class="t-${pctCls(r.pct)}">${r.pct}%</b><small>cumplimiento promedio</small></div>
+    <div class="ik"><b>${r.constantes}/${r.n}</b><small>días constantes (≥${STREAK_MIN_PCT}%)</small></div>
+    <div class="ik"><b class="${wDelta === null ? "" : wDelta <= 0 ? "t-ok" : "t-low"}">${wDelta === null ? "—" : sign(wDelta) + " kg"}</b><small>cambio de peso${two ? "" : "<br>falta 2º análisis"}</small></div>
+    <div class="ik"><b class="${gDelta === null || isNaN(gDelta) ? "" : gDelta <= 0 ? "t-ok" : "t-low"}">${gDelta === null || isNaN(gDelta) ? "—" : sign(gDelta) + " kg"}</b><small>cambio de grasa${two ? "" : "<br>falta 2º análisis"}</small></div>
+  </div>
+
+  ${r.obs.length ? `<div class="card inf-obs"><div class="inf-h">🔎 Para revisar en el control</div><ul>${r.obs.map(o => `<li>${esc(o)}</li>`).join("")}</ul></div>` : ""}
+
+  ${B ? `<div class="card"><div class="inf-h">🧬 Composición corporal · Fitmao</div>
+    <div class="inf-table"><div class="it-row it-head"><span></span><span>${two ? fmtShort(A.date) : ""}</span><span>${fmtShort(B.date)}</span><span>${two ? "Cambio" : ""}</span></div>
+    ${rows.map(([l, k, u, d = 1]) => {
+      const b = fitVal(B, k); if (b == null) return "";
+      const a = two ? fitVal(A, k) : null, dv = a != null ? +(b - a).toFixed(d) : null;
+      const good = dv === null || dv === 0 ? "" : (dv < 0) === (better(k) === "down") ? "t-ok" : "t-low";
+      return `<div class="it-row"><span>${l}</span><span>${a != null ? num(a, d) : ""}</span><b>${num(b, d)}${u}</b><span class="${good}">${dv !== null && dv !== 0 ? (dv > 0 ? "+" : "−") + num(Math.abs(dv), d) : dv === 0 ? "=" : ""}</span></div>`;
+    }).join("")}</div>
+    ${wpts.length >= 2 ? `<div class="evo" style="margin-top:12px"><div class="evo-h"><span>⚖️ Peso registrado (kg)</span></div>${sparkLine(wpts, "#2D9CDB")}</div>` : ""}
+  </div>` : ""}
+
+  <div class="card"><div class="inf-h">🍽️ Adherencia al plan <span class="grp-note">% de los días</span></div>
+    <div class="hbars">
+      ${r.meals.map(x => hb({ desayuno: "☕", almuerzo: "🍽️", snack: "🍎", cena: "🌙" }[x.m], x.label, x.pct)).join("")}
+      ${hb("💧", "Agua 3,5 L", r.agua)}
+      ${hb("🥤", "Proteína ISO", r.proteina)}
+      ${hb("💊", "Creatina", r.creatina)}
+      ${hb("🥑", "Aguacate", r.aguacate)}
+    </div>
+    <div class="inf-stats">
+      <div><span>🏋️</span><b>${num(r.workoutsWeek)}</b><small>entrenos por semana<br>meta ${WEEKLY_WORKOUT_GOAL}</small></div>
+      <div><span>👣</span><b>${r.stepsAvg !== null ? Math.round(r.stepsAvg).toLocaleString("es") : "—"}</b><small>pasos promedio<br>meta ${STEPS_GOAL.toLocaleString("es")}</small></div>
+      <div><span>😴</span><b>${r.sleepAvg !== null ? num(r.sleepAvg) + " h" : "—"}</b><small>sueño promedio<br>meta 7 – 8 h</small></div>
+    </div>
+  </div>
+
+  <div class="card"><div class="inf-h">📅 Cumplimiento por día de la semana</div>
+    <div class="week-bars" style="height:120px">${r.byWd.map((p, i) => `<div class="wb"><span class="wb-val">${p === null ? "" : p + "%"}</span><span class="wb-track"><span class="wb-fill ${p >= STREAK_MIN_PCT ? "hit" : p > 0 ? "part" : ""}" style="height:${p ? Math.max(p, 5) : 0}%"></span></span><span class="wb-lbl">${wds[i]}</span></div>`).join("")}</div>
+    ${r.wkd !== null && r.wke !== null ? `<p class="small muted" style="font-weight:700;margin-top:8px">Entre semana ${Math.round(r.wkd)} % · fin de semana ${Math.round(r.wke)} %</p>` : ""}
+  </div>
+
+  ${r.choices.length ? `<div class="card"><div class="inf-h">🥗 Opciones más elegidas</div>
+    ${r.choices.map(c => `<div class="ch-grp"><div class="ch-gl">${c.meal} · ${c.group}</div>${c.top.map(t => `<div class="ch-opt"><span>${esc(t.name)}</span><span class="hb-track"><i style="width:${t.pct}%"></i></span><b>${t.pct}%</b></div>`).join("")}</div>`).join("")}
+  </div>` : ""}
+
+  <div class="card"><div class="inf-h">💬 Ánimo y notas</div>
+    <div class="inf-moods">${MOODS.map(([e, l], i) => `<div><span>${e}</span><b>${r.moods[i]}</b><small>${l}</small></div>`).join("")}</div>
+    ${r.notes.length ? `<div class="inf-notes">${r.notes.slice(0, 10).map(x => `<div><b>${fmtShort(x.k)}</b> ${esc(x.t)}</div>`).join("")}</div>` : '<p class="small muted" style="font-weight:600;margin-top:8px">Sin notas en este período.</p>'}
+  </div>
+
+  <div class="card inf-game"><span>🔥 Racha actual ${r.streak} · mejor ${r.best}</span><span>⭐ ${r.perfectos} días perfectos</span><span>🏆 ${r.retos} ${r.retos === 1 ? "reto ganado" : "retos ganados"}</span></div>
+
+  <div class="inf-actions">
+    <button class="btn btn-primary" data-a="shareInforme">${I.share} Enviar por WhatsApp</button>
+    <button class="btn btn-ghost" data-a="printInforme">${I.download} Guardar PDF</button>
+  </div>
+  <p class="inf-foot">Generado con Mi Plan el ${fmtLong(todayKey()).toLowerCase()}. Datos registrados por el paciente; composición corporal de la máquina Fitmao.</p>`;
 }
 
 /* ===================== PLAN ===================== */
@@ -670,26 +810,32 @@ function sheetWorkout() {
 }
 
 function sheetWeight() {
-  return `<h2>Registrar peso</h2><div class="sub">Pésate en condiciones parecidas cada vez (ej. en la mañana)</div>
+  const lastFit = fitScans().pop(), ph = k => lastFit ? (fitVal(lastFit, k) ?? "") : "";
+  const field = (id, label, placeholder, step = "0.1") => `<div><div class="f-lbl">${label}</div><input class="field" id="${id}" type="number" inputmode="decimal" step="${step}" min="0" placeholder="${placeholder}"></div>`;
+  return `<h2>Nuevo análisis</h2><div class="sub">Copia los datos del informe del Fitmao. Usa siempre la misma máquina, en ayunas.</div>
   <div class="sheet-sec"><div class="lbl">Fecha</div><input class="field" id="in-wdate" type="date" value="${todayKey()}" max="${todayKey()}"></div>
-  <div class="sheet-sec row-2">
-    <div><div class="lbl" style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">Peso (kg)</div><input class="field" id="in-kg" type="number" inputmode="decimal" step="0.1" min="30" max="300" placeholder="${lastWeighIn()?.kg ?? baselineWeight().kg}"></div>
-    <div><div class="lbl" style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px">% grasa (opcional)</div><input class="field" id="in-fat" type="number" inputmode="decimal" step="0.1" min="3" max="70" placeholder="—"></div>
+  <div class="sheet-sec f-grid">
+    ${field("in-kg", "Peso corporal (kg) *", lastWeighIn()?.kg ?? baselineWeight().kg)}
+    ${field("in-fat", "PBF · % grasa", ph("pbf") || "—")}
+    ${FIT_FIELDS.map(f => field("in-f-" + f.k, `${f.label}${f.unit ? ` (${f.unit.trim()})` : ""}`, ph(f.k) || "—", f.d === 2 ? "0.01" : f.d === 0 ? "1" : "0.1")).join("")}
   </div>
-  <button class="btn btn-primary" style="margin-top:16px" data-a="saveWeight">${I.check} Guardar</button>`;
+  <p class="small muted" style="margin-top:8px;font-weight:600">En gris ves los valores de tu último análisis. Solo el peso es obligatorio.</p>
+  <button class="btn btn-primary" style="margin-top:14px" data-a="saveWeight">${I.check} Guardar análisis</button>`;
 }
 
 function sheetSettings() {
   const r = state.settings.reminders;
   const perm = "Notification" in window ? Notification.permission : "unsupported";
-  const labels = { desayuno: "Desayuno", suplementos: "Suplementos", almuerzo: "Almuerzo", snack: "Snack", cena: "Cena", agua1: "Agua · termo AM", agua2: "Agua · termo medio día", agua3: "Agua · termo PM", agua4: "Agua · medio termo", resumen: "Reporte (domingos)" };
+  const labels = { desayuno: "☕ Desayuno", suplementos: "💊 Suplementos", almuerzo: "🍽️ Almuerzo", snack: "🍎 Snack", entreno: "🏋️ Entreno", cena: "🌙 Cena", agua1: "💧 Termo AM", agua2: "💧 Termo medio día", agua3: "💧 Termo PM", agua4: "💧 Medio termo", dormir: "😴 A dormir", resumen: "📊 Reporte (domingos)" };
   return `<h2>Ajustes</h2>
   <div class="sheet-sec"><div class="lbl">Tu nombre</div><input class="field" id="in-name" value="${esc(state.settings.name)}" maxlength="24"></div>
   ${typeof syncSettingsHtml === "function" ? syncSettingsHtml() : ""}
   <div class="sheet-sec"><div class="lbl">Recordatorios</div>
     <div class="set-row"><div><div class="t">Activar recordatorios</div><div class="d">${perm === "denied" ? "Notificaciones bloqueadas en el navegador" : perm === "unsupported" ? "Instala la app en tu pantalla de inicio para recibirlos" : "Solo avisa si la tarea sigue pendiente"}</div></div>
       <button class="switch ${r.enabled ? "on" : ""}" data-a="toggleReminders" aria-label="Activar recordatorios"></button></div>
-    ${r.enabled ? Object.entries(labels).map(([k, l]) => `<div class="set-row"><div class="t">${l}</div><input class="field" type="time" data-a="remTime" data-v="${k}" value="${r.times[k]}"></div>`).join("") : ""}
+  </div>
+  <div class="sheet-sec"><div class="lbl">Tu horario · avisos y hora de cada comida</div>
+    ${Object.entries(labels).map(([k, l]) => `<div class="set-row"><div class="t">${l}</div><input class="field" type="time" data-a="remTime" data-v="${k}" value="${r.times[k]}"></div>`).join("")}
   </div>
   <div class="sheet-sec"><div class="lbl">Respaldo</div>
     <div class="row-2"><button class="btn btn-ghost" data-a="export">${I.download} Exportar</button>
