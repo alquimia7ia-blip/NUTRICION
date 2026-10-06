@@ -50,10 +50,10 @@ const I = {
   faceE: face('<path d="M8 14c2 3 6 3 8 0"/>')
 };
 const MEAL_ICON = { desayuno: "coffee", almuerzo: "plate", snack: "apple", cena: "dinner" };
-const MOODS = [["faceA", "Mal"], ["faceB", "Regular"], ["faceC", "Bien"], ["faceD", "Muy bien"], ["faceE", "Genial"]];
+const MOODS = [["😣", "Mal"], ["😕", "Regular"], ["🙂", "Bien"], ["😄", "Muy bien"], ["🤩", "Genial"]];
 
 /* ===================== UI STATE ===================== */
-const ui = { tab: "hoy", date: todayKey(), open: new Set(), sheet: null, reportWeek: weekStart(todayKey()), tipDay: null };
+const ui = { tab: "hoy", date: todayKey(), open: new Set(), closed: new Set(), flash: null, regMonth: todayKey().slice(0, 7), sheet: null, reportWeek: weekStart(todayKey()) };
 const $screen = () => document.getElementById("screen");
 
 function render() {
@@ -66,6 +66,7 @@ function render() {
     const on = row.querySelector(".on");
     if (on) row.scrollLeft = Math.max(0, on.offsetLeft - row.offsetLeft - 24);
   });
+  ui.flash = null;
   renderSheet();
 }
 
@@ -91,8 +92,7 @@ function renderTabbar() {
 /* ===================== HOY ===================== */
 function renderHoy() {
   const k = ui.date, isToday = k === todayKey(), d = getDay(k);
-  const pct = dayPct(k), lv = levelInfo(), streak = currentStreak();
-  const circ = 2 * Math.PI * 52, dash = pct / 100 * circ;
+  const pct = dayPct(k);
   let h = `
   <div class="date-nav">
     <button class="arrow" data-a="day" data-v="-1" aria-label="Día anterior">${I.chevron}</button>
@@ -110,93 +110,73 @@ function renderHoy() {
       <div class="d">${last ? `Último: ${last.kg} kg hace ${daysBetween(last.date, todayKey())} días` : "Cada 15 días verás tu curva de progreso"}</div></div></button>`;
   }
 
-  h += `
-  <button class="streak-card" data-a="tab" data-v="progreso">
-    <div class="streak-row">
-      <div class="streak-ico">${I.flameFill}</div>
-      <div><div class="streak-num">${streak} ${streak === 1 ? "día" : "días"} de racha</div>
-      <div class="streak-msg">${streakMsg(streak)}</div></div>
-    </div>
-    <div>
-      <div class="xp-row"><span>NIVEL ${lv.n} · ${lv.name.toUpperCase()}</span><span>${lv.next ? `${lv.into} / ${lv.span} XP` : `${lv.xp} XP`}</span></div>
-      <div class="xp-track"><div class="xp-fill" style="width:${lv.pct}%"></div></div>
-    </div>
-  </button>
+  h += heroCard(k);
 
-  <div class="ring-wrap">
-    <svg viewBox="0 0 140 140" role="img" aria-label="${pct}% del plan de hoy">
-      <circle cx="70" cy="70" r="52" fill="none" stroke="var(--green-light)" stroke-width="13"/>
-      <circle class="ring-fg" cx="70" cy="70" r="52" fill="none" stroke="var(--green)" stroke-width="13" stroke-linecap="round"
-        stroke-dasharray="${dash.toFixed(1)} ${(circ - dash).toFixed(1)}" transform="rotate(-90 70 70)"/>
-      <text x="70" y="68" text-anchor="middle" font-family="Baloo 2, sans-serif" font-size="34" font-weight="800" fill="#14231A">${pct}%</text>
-      <text x="70" y="87" text-anchor="middle" font-family="Mulish, sans-serif" font-size="10" font-weight="800" fill="#5F7166">+${dayXP(k)} XP HOY</text>
-    </svg>
-    <div class="ring-caption">${doneCount(k)} de ${TOTAL_TASKS} tareas del plan</div>
+  if (pct === 100) h += `<div class="perfect">🎉 <div><b>¡Día perfecto!</b><span>Cumpliste todo el plan de hoy.</span></div></div>`;
+
+  // Lista de seguimiento: todo lo del plan, en el orden del día.
+  const nn = isToday ? nowNext(k) : {};
+  const mealsDone = MEAL_ORDER.filter(m => d.meals[m].done).length;
+  h += `<div class="section-title">${secIcon("🍽️")} Comidas <span class="sec-count">${mealsDone}/4</span></div>
+  <div class="track-list">${MEAL_ORDER.map(m => mealRow(m, k, nn)).join("")}</div>`;
+
+  const W = ["AM", "medio día", "PM"];
+  h += `<div class="section-title">${secIcon("💧")} Agua · ${String(PLAN.hidratacion.metaLitros).replace(".", ",")} L <span class="sec-count">${d.water.filter(Boolean).length}/3</span></div>
+  <div class="track-list">
+    <div class="water-row">${W.map((l, i) => `<button class="bottle ${d.water[i] ? "on" : ""} ${ui.flash === "water" + i ? "pop" : ""}" data-a="water" data-v="${i}" aria-pressed="${d.water[i]}" aria-label="Termo ${l}">
+      <span class="bottle-body"><span class="bottle-fill"></span><span class="bottle-ic">${d.water[i] ? I.check : I.drop}</span></span>
+      <b>Termo ${l}</b><small>1 L</small></button>`).join("")}</div>
   </div>`;
 
-  if (isToday) {
-    const nn = nowNext(k);
-    if (nn.allDone) {
-      h += `<div class="card-soft done-banner">${I.check}<div class="card-title" style="margin-top:6px">Comidas del día completas</div>
-        <p class="small muted" style="margin-top:4px">${pct === 100 ? "Día perfecto. Disfruta tu noche." : "Revisa agua, suplementos y aguacate."}</p></div>`;
-    } else {
-      const m = PLAN.comidas[nn.now];
-      h += `<div class="card-soft">
-        <div class="eyebrow">Ahora</div>
-        <div class="now-title">${m.label} <span>· ${m.horario}</span></div>
-        ${mealBody(nn.now, k, true)}
-      </div>`;
-      if (nn.next) h += `<div class="next-row"><div><div class="k">Siguiente</div><div class="v">${PLAN.comidas[nn.next].label}</div></div><div class="small muted" style="font-weight:700">${PLAN.comidas[nn.next].horario}</div></div>`;
-    }
-  }
+  const R = RESUMEN;
+  const extras = [
+    ...PLAN.suplementos.map(s => ({ id: "supp-" + s.id, on: d.supplements[s.id], a: "supp", v: s.id, r: R.suplementos[s.id] })),
+    { id: "aguacate", on: d.aguacate, a: "aguacate", v: "", r: R.aguacate }
+  ];
+  h += `<div class="section-title">${secIcon("💊")} Suplementos y aguacate <span class="sec-count">${extras.filter(x => x.on).length}/3</span></div>
+  <div class="track-list">${extras.map(x => trackRow(x.id, x.on, x.a, x.v, x.r[0], x.r[1], x.r[2])).join("")}</div>`;
 
-  const ws = weekStart(k), wk = workoutsInWeek(ws), todayW = d.workouts.length;
-  h += `<div class="grid2">
-    <div class="widget">
-      <div class="w-head"><span class="w-label">Agua</span><span class="w-sub">${d.water.filter(Boolean).length}/3</span></div>
-      <div class="taps">${["AM", "Medio", "PM"].map((l, i) => `<button class="tap ${d.water[i] ? "on" : ""}" data-a="water" data-v="${i}" aria-label="Termo ${l}">${I.drop}<span class="tl">${l}</span></button>`).join("")}</div>
-      <div class="w-sub">Termos de 1 L · meta ${PLAN.hidratacion.metaLitros} L</div>
-    </div>
-    <button class="widget" data-a="aguacate">
-      <div class="w-head"><span class="w-label">Aguacate</span><span class="chk ${d.aguacate ? "on" : ""}">${d.aguacate ? I.check : ""}</span></div>
-      <div class="w-val">${PLAN.aguacateDiario.gramos} gr al día</div>
-      <div class="w-sub">${d.aguacate ? "Listo hoy" : "Pendiente · toca al comerlo"}</div>
-    </button>
-    <div class="widget">
-      <div class="w-head"><span class="w-label">Suplementos</span><span class="w-sub">${+d.supplements.proteina + +d.supplements.creatina}/2</span></div>
-      <div class="taps">${PLAN.suplementos.map(s => `<button class="tap ${d.supplements[s.id] ? "on" : ""}" data-a="supp" data-v="${s.id}" aria-label="${esc(s.nombre)}">${I.pill}<span class="tl">${s.id === "proteina" ? "Proteína" : "Creatina"}</span></button>`).join("")}</div>
-      <div class="w-sub">1 scoop de cada uno</div>
-    </div>
-    <button class="widget w-train" data-a="sheet" data-v="workout">
-      <div class="w-head"><span class="w-label">Entreno</span>${I.plus.replace("<svg", '<svg width="20" height="20"')}</div>
-      <div class="w-val">${todayW ? `${todayW} hoy` : "Registrar"}</div>
-      <div><div class="mini-dots">${[0, 1, 2, 3].map(i => `<i class="${i < wk ? "on" : ""}"></i>`).join("")}</div><div class="w-sub" style="margin-top:5px">${wk}/${WEEKLY_WORKOUT_GOAL} esta semana</div></div>
-    </button>
-  </div>
+  h += `<div class="section-title">${secIcon("🏃")} Movimiento y descanso</div>` + moveCard(k, d);
 
-  <div class="section-title">Comidas del día</div>
-  ${MEAL_ORDER.map(m => mealRow(m, k)).join("")}
-
-  <div class="section-title">Hábitos</div>
+  h += `<div class="section-title">${secIcon("💬")} ¿Cómo te sentiste?</div>
   <div class="card">
-    <div class="hab-row">
-      <div class="hab-top"><div class="hab-name">${I.steps} Pasos</div><input class="num" id="in-steps" type="number" inputmode="numeric" min="0" placeholder="0" value="${esc(d.steps)}"></div>
-      <div class="chips">${[4000, 6000, 8000, 10000].map(v => `<button class="chip ${+d.steps === v ? "on" : ""}" data-a="steps" data-v="${v}">${v / 1000}k</button>`).join("")}</div>
-      <div class="small muted" style="font-weight:600">Meta del plan: mín. ${STEPS_GOAL.toLocaleString("es")} pasos</div>
-    </div>
-    <div class="hab-row">
-      <div class="hab-name">${I.sleep} Sueño</div>
-      <div class="chips">${[5, 6, 7, 8, 9].map(v => `<button class="chip ${+d.sleep === v ? "on" : ""}" data-a="sleep" data-v="${v}">${v} h</button>`).join("")}</div>
-      <div class="small muted" style="font-weight:600">Recomendado: 7 – 8 horas</div>
-    </div>
-  </div>
-
-  <div class="section-title">¿Cómo te sentiste?</div>
-  <div class="card">
-    <div class="moods">${MOODS.map(([ic, l], i) => `<button class="mood ${d.mood === i + 1 ? "on" : ""}" data-a="mood" data-v="${i + 1}">${I[ic]}${l}</button>`).join("")}</div>
+    <div class="moods">${MOODS.map(([e, l], i) => `<button class="mood ${d.mood === i + 1 ? "on" : ""}" data-a="mood" data-v="${i + 1}"><span class="mood-e">${e}</span>${l}</button>`).join("")}</div>
     <textarea class="notes" id="in-notes" placeholder="Notas del día (opcional)">${esc(d.notes)}</textarea>
   </div>`;
   return h;
+}
+
+const secIcon = e => `<span class="sec-ic" aria-hidden="true">${e}</span>`;
+
+function heroCard(k) {
+  const pct = dayPct(k), lv = levelInfo(), streak = currentStreak();
+  const circ = 2 * Math.PI * 34, dash = pct / 100 * circ;
+  const ws = weekStart(k);
+  const dots = [...Array(7)].map((_, i) => {
+    const dk = addDays(ws, i), p = dayPct(dk), fut = dk > todayKey();
+    const cls = fut ? "fut" : p >= STREAK_MIN_PCT ? "hit" : p > 0 ? "part" : "miss";
+    const inner = cls === "hit" ? I.flameFill : cls === "part" ? `<b>${p}</b>` : "";
+    return `<button class="wd ${cls} ${dk === k ? "cur" : ""}" ${fut ? "disabled" : `data-a="openDay" data-v="${dk}"`} aria-label="${fmtLong(dk)}: ${p}%"><span class="wd-c">${inner}</span><span class="wd-l">${weekday2(dk)}</span></button>`;
+  }).join("");
+  return `<div class="hero">
+    <div class="hero-top">
+      <div class="hero-ring">
+        <svg viewBox="0 0 84 84" role="img" aria-label="${pct}% del plan">
+          <circle cx="42" cy="42" r="34" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="9"/>
+          <circle class="ring-fg" cx="42" cy="42" r="34" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round"
+            stroke-dasharray="${dash.toFixed(1)} ${(circ - dash).toFixed(1)}" transform="rotate(-90 42 42)"/>
+        </svg>
+        <div class="hero-pct"><b>${pct}%</b><span>${doneCount(k)}/${TOTAL_TASKS}</span></div>
+      </div>
+      <button class="hero-info" data-a="tab" data-v="progreso">
+        <div class="hero-streak"><span class="flame-ic">${I.flameFill}</span>${streak} ${streak === 1 ? "día" : "días"} de racha</div>
+        <div class="hero-msg">${streakMsg(streak)}</div>
+        <div class="xp-row"><span>Nivel ${lv.n} · ${lv.name}</span><span>${lv.next ? `${lv.into}/${lv.span} XP` : `${lv.xp} XP`}</span></div>
+        <div class="xp-track"><div class="xp-fill" style="width:${lv.pct}%"></div></div>
+      </button>
+    </div>
+    <div class="week-dots">${dots}</div>
+  </div>`;
 }
 
 function streakMsg(n) {
@@ -207,23 +187,60 @@ function streakMsg(n) {
   return "Imparable. Así se construye un hábito";
 }
 
-function mealSummary(m, k) {
-  const cfg = PLAN.comidas[m], sel = getDay(k).meals[m].sel;
-  return cfg.grupos.map(g => g.opciones[sel[g.key] ?? 0].split(" – ")[0].split(" (")[0]).join(" · ");
+function trackRow(id, on, a, v, ic, t, q) {
+  return `<button class="track ${on ? "on" : ""} ${ui.flash === id ? "pop" : ""}" data-a="${a}" data-v="${v}" aria-pressed="${on}">
+    <span class="tr-ic" aria-hidden="true">${icono(ic)}</span>
+    <span class="tr-txt"><b>${esc(t)}</b><small>${esc(q)}</small></span>
+    <span class="circle ${on ? "on" : ""}">${I.check}</span></button>`;
 }
-function mealRow(m, k) {
-  const cfg = PLAN.comidas[m], d = getDay(k), done = d.meals[m].done, open = ui.open.has(m);
-  const nn = k === todayKey() ? nowNext(k) : {};
-  return `<div class="meal ${done ? "done" : ""}">
+
+// Íconos de lo elegido en cada comida, en vez de texto cortado.
+function mealPicks(m, k) {
+  const cfg = PLAN.comidas[m], sel = getDay(k).meals[m].sel;
+  return cfg.grupos.map(g => {
+    const i = sel[g.key] ?? 0, c = ((OPCION_CORTA[m] || {})[g.key] || [])[i];
+    return c ? `<span class="pick" title="${esc(c[1])}">${icono(c[0])}</span>` : "";
+  }).join("");
+}
+function mealOpen(m, k, nn) {
+  return ui.open.has(m) || (k === todayKey() && nn.now === m && !ui.closed.has(m));
+}
+function mealRow(m, k, nn = {}) {
+  const cfg = PLAN.comidas[m], d = getDay(k), done = d.meals[m].done, open = mealOpen(m, k, nn);
+  return `<div class="meal ${done ? "done" : ""} ${open ? "open" : ""} ${ui.flash === "meal-" + m ? "pop" : ""}">
     <div class="meal-row">
-      <button class="meal-ico" data-a="openMeal" data-v="${m}" aria-label="Ver opciones de ${cfg.label}" style="border:none">${I[MEAL_ICON[m]]}</button>
-      <button data-a="openMeal" data-v="${m}" class="meal-info" style="border:none;background:none;text-align:left;padding:0">
-        <div class="meal-name">${cfg.label} ${nn.now === m ? '<span class="tag">Ahora</span>' : ""}</div>
-        <div class="meal-sum">${cfg.horario} · ${esc(mealSummary(m, k))}</div>
+      <button class="meal-info" data-a="openMeal" data-v="${m}" aria-expanded="${open}">
+        <span class="meal-ico">${I[MEAL_ICON[m]]}</span>
+        <span style="min-width:0;flex:1">
+          <span class="meal-name">${cfg.label} ${nn.now === m ? '<span class="tag">Ahora</span>' : ""}<span class="meal-time">${cfg.horario}</span></span>
+          <span class="picks">${mealPicks(m, k)}<span class="picks-l">${done ? "Completada" : open ? "Elige abajo" : "Toca para cambiar"}</span></span>
+        </span>
       </button>
       <button class="circle ${done ? "on" : ""}" data-a="meal" data-v="${m}" aria-label="Marcar ${cfg.label}">${I.check}</button>
     </div>
-    ${open ? `<div class="meal-body">${mealBody(m, k, false)}</div>` : ""}
+    ${open ? `<div class="meal-body">${mealBody(m, k, true)}</div>` : ""}
+  </div>`;
+}
+
+function moveCard(k, d) {
+  const ws = weekStart(k), wk = workoutsInWeek(ws), todayW = d.workouts.length;
+  const steps = +d.steps || 0, sp = Math.min(100, Math.round(steps / STEPS_GOAL * 100));
+  return `<div class="card move">
+    <button class="track ${todayW ? "on" : ""}" data-a="sheet" data-v="workout">
+      <span class="tr-ic" aria-hidden="true">🏋️</span>
+      <span class="tr-txt"><b>Entreno</b><small>${todayW ? `${todayW} registrado${todayW > 1 ? "s" : ""} hoy` : "Toca para registrar"}</small>
+        <span class="seg">${[...Array(WEEKLY_WORKOUT_GOAL)].map((_, i) => `<i class="${i < wk ? "on" : ""}"></i>`).join("")}<em>${wk}/${WEEKLY_WORKOUT_GOAL} esta semana</em></span></span>
+      <span class="circle add ${todayW ? "on" : ""}">${todayW ? I.check : I.plus}</span></button>
+    <div class="hab">
+      <div class="hab-top"><div class="hab-name"><span class="tr-ic sm" aria-hidden="true">👣</span>Pasos</div>
+        <input class="num" id="in-steps" type="number" inputmode="numeric" min="0" placeholder="0" value="${esc(d.steps)}" aria-label="Pasos de hoy"></div>
+      <div class="goal-bar ${sp >= 100 ? "full" : ""}"><i style="width:${sp}%"></i><span>${sp >= 100 ? "¡Meta cumplida!" : `${sp}% de ${STEPS_GOAL.toLocaleString("es")}`}</span></div>
+      <div class="chips">${[4000, 6000, 8000, 10000].map(v => `<button class="chip ${+d.steps === v ? "on" : ""}" data-a="steps" data-v="${v}">${v / 1000}k</button>`).join("")}</div>
+    </div>
+    <div class="hab">
+      <div class="hab-name"><span class="tr-ic sm" aria-hidden="true">😴</span>Sueño <span class="grp-note">recomendado 7 – 8 h</span></div>
+      <div class="chips">${[5, 6, 7, 8, 9].map(v => `<button class="chip ${+d.sleep === v ? "on" : ""} ${v === 7 || v === 8 ? "rec" : ""}" data-a="sleep" data-v="${v}">${v} h</button>`).join("")}</div>
+    </div>
   </div>`;
 }
 function mealBody(m, k, withButton) {
@@ -274,67 +291,98 @@ function renderProgreso() {
     <div class="level-badge"><small>NIVEL</small><span>${lv.n}</span></div>
     <div style="flex:1;min-width:0">
       <div class="card-title">${lv.name}</div>
-      <div class="small muted" style="font-weight:700">${lv.xp.toLocaleString("es")} XP en total${lv.next ? ` · faltan ${lv.next.xp - lv.xp} para ${lv.next.name}` : ""}</div>
+      <div class="small muted" style="font-weight:700">${lv.xp.toLocaleString("es")} XP${lv.next ? ` · faltan ${lv.next.xp - lv.xp} para ${lv.next.name}` : ""}</div>
       <div class="bar"><i style="width:${lv.pct}%"></i></div>
     </div>
   </div>
 
-  <div class="grid2">
-    <div class="kpi">${I.flame}<div><div class="v">${currentStreak()}</div><div class="l">Racha actual</div></div></div>
-    <div class="kpi">${I.trophy}<div><div class="v">${bestStreak()}</div><div class="l">Mejor racha</div></div></div>
+  <div class="kpi-row">
+    <div class="kpi-b coral"><span>🔥</span><b>${currentStreak()}</b><small>Racha actual</small></div>
+    <div class="kpi-b gold"><span>🏆</span><b>${bestStreak()}</b><small>Mejor racha</small></div>
+    <div class="kpi-b green"><span>⭐</span><b>${Object.keys(state.days).filter(k => dayPct(k) === 100).length}</b><small>Días perfectos</small></div>
   </div>
 
-  <div class="section-title">Últimos 7 días</div>
+  <div class="section-title">${secIcon("📊")} Últimos 7 días</div>
   <div class="card">
-    <div class="week-bars">${last7.map(k => {
-      const p = dayPct(k), sel = ui.tipDay === k;
-      return `<button class="wb" data-a="tipDay" data-v="${k}" style="border:none;background:none;padding:0" aria-label="${fmtShort(k)}: ${p}%">
-        <span class="small" style="font-weight:800;visibility:${sel ? "visible" : "hidden"}">${p}%</span>
-        <span class="wb-track"><span class="wb-fill ${k === todayKey() ? "today" : ""}" style="height:${p ? Math.max(p, 4) : 0}%"></span></span>
-        <span class="wb-lbl">${weekday2(k)}</span></button>`;
-    }).join("")}</div>
-    <p class="small muted" style="margin-top:8px;font-weight:600">Toca una barra para ver el %. Un día cuenta para la racha desde ${STREAK_MIN_PCT}%.</p>
+    <div class="week-bars">
+      <div class="wb-goal" style="bottom:calc(${STREAK_MIN_PCT}% * .78 + 18px)"><span>racha ${STREAK_MIN_PCT}%</span></div>
+      ${last7.map(k => {
+        const p = dayPct(k), cls = p >= STREAK_MIN_PCT ? "hit" : p > 0 ? "part" : "";
+        return `<button class="wb" data-a="openDay" data-v="${k}" aria-label="${fmtLong(k)}: ${p}%">
+          <span class="wb-val">${p}%</span>
+          <span class="wb-track"><span class="wb-fill ${cls} ${k === todayKey() ? "today" : ""}" style="height:${p ? Math.max(p, 5) : 0}%"></span></span>
+          <span class="wb-lbl ${k === todayKey() ? "today" : ""}">${k === todayKey() ? "hoy" : weekday2(k)}</span></button>`;
+      }).join("")}</div>
   </div>`;
 
   h += renderReport();
+  h += habitsChart(last7);
   h += renderWeight();
 
-  h += `<div class="section-title">Insignias · ${earned.size}/${BADGES.length}</div>
-  <div class="card"><div class="badges">${BADGES.map(b => `<div class="badge ${earned.has(b.id) ? "" : "locked"}">
-      <div class="b-ico" style="background:${b.color};box-shadow:0 6px 14px ${b.color}55">${earned.has(b.id) ? I[b.icon] : I.lock}</div>
-      <div class="b-name">${b.name}</div><div class="b-desc">${b.desc}</div></div>`).join("")}</div></div>`;
+  h += `<div class="section-title">${secIcon("🏅")} Insignias · ${earned.size}/${BADGES.length}</div>
+  <div class="card"><div class="badges">${BADGES.map(b => {
+    const got = earned.has(b.id), [cur, goal] = b.prog ? b.prog() : [0, 1], bp = Math.min(100, Math.round(cur / goal * 100));
+    return `<div class="badge ${got ? "" : "locked"}">
+      <div class="b-ico" style="background:${b.color};box-shadow:0 6px 14px ${b.color}55">${got ? I[b.icon] : I.lock}</div>
+      <div class="b-name">${b.name}</div><div class="b-desc">${b.desc}</div>
+      ${got ? '<div class="b-got">¡Lograda!</div>' : `<div class="b-prog"><i style="width:${bp}%;background:${b.color}"></i></div><div class="b-num">${Math.min(cur, goal)}/${goal}</div>`}</div>`;
+  }).join("")}</div></div>`;
   return h;
+}
+
+// Pasos y sueño de los últimos 7 días, con la meta del plan marcada.
+function habitsChart(days) {
+  const steps = days.map(k => +getDay(k).steps || 0), sleep = days.map(k => +getDay(k).sleep || 0);
+  const maxS = Math.max(STEPS_GOAL * 1.25, ...steps);
+  const bars = (vals, max, goalLo, goalHi, fmt, cls) => `<div class="mini-chart">
+    <div class="mc-band" style="bottom:${goalLo / max * 100}%;height:${Math.max(2, (goalHi - goalLo) / max * 100)}%"></div>
+    ${vals.map((v, i) => `<div class="mc-col"><span class="mc-v">${v ? fmt(v) : ""}</span><span class="mc-bar ${cls} ${v >= goalLo ? "ok" : ""}" style="height:${v ? Math.max(4, v / max * 100) : 0}%"></span></div>`).join("")}
+  </div><div class="mc-lbls">${days.map(k => `<span>${k === todayKey() ? "hoy" : weekday2(k)}</span>`).join("")}</div>`;
+  return `<div class="section-title">${secIcon("📈")} Pasos y sueño · 7 días</div>
+  <div class="card">
+    <div class="mc-head"><span>👣 Pasos</span><small>meta ${STEPS_GOAL.toLocaleString("es")}</small></div>
+    ${bars(steps, maxS, STEPS_GOAL, STEPS_GOAL, v => (v / 1000).toFixed(v % 1000 ? 1 : 0) + "k", "steps")}
+    <div class="mc-head" style="margin-top:16px"><span>😴 Sueño</span><small>recomendado 7 – 8 h</small></div>
+    ${bars(sleep, 10, 7, 8, v => v + "h", "sleep")}
+  </div>`;
 }
 
 function renderReport() {
   const ws = ui.reportWeek, r = weeklyReport(ws), isCur = ws === weekStart(todayKey());
-  const low = id => r.lowest && r.lowest.id === id ? "low" : "";
-  const kpi = (id, icon, v, l) => `<div class="kpi ${low(id)}">${I[icon]}<div><div class="v">${v}</div><div class="l">${l}</div></div></div>`;
   const n = r.trackedDays;
-  return `<div class="section-title">Reporte semanal</div>
+  const circ = 2 * Math.PI * 30, dash = r.pct / 100 * circ;
+  const rows = [
+    ["comidas", "🍽️", "Comidas", r.meals / Math.max(1, r.mealsMax), `${r.meals}/${r.mealsMax}`],
+    ["agua", "💧", "Agua", r.agua / Math.max(1, n), `${r.agua}/${n} días`],
+    ["suplementos", "💊", "Suplementos", r.supp / Math.max(1, n), `${r.supp}/${n} días`],
+    ["aguacate", "🥑", "Aguacate", r.agu / Math.max(1, n), `${r.agu}/${n} días`],
+    ["entreno", "🏋️", "Entreno", r.workouts / WEEKLY_WORKOUT_GOAL, `${r.workouts}/${WEEKLY_WORKOUT_GOAL}`],
+    ["pasos", "👣", "Pasos", r.stepsAvg !== null ? r.stepsAvg / STEPS_GOAL : 0, r.stepsAvg !== null ? Math.round(r.stepsAvg).toLocaleString("es") : "—"],
+    ["sueno", "😴", "Sueño", r.sleepAvg !== null ? r.sleepAvg / 7 : 0, r.sleepAvg !== null ? r.sleepAvg.toFixed(1).replace(".", ",") + " h" : "—"]
+  ];
+  return `<div class="section-title">${secIcon("🗓️")} Reporte semanal</div>
   <div class="card">
     <div class="date-nav" style="margin-bottom:12px">
       <button class="arrow" data-a="week" data-v="-7" aria-label="Semana anterior">${I.chevron}</button>
-      <div class="date-center"><div class="date-main" style="text-transform:none">${fmtShort(ws)} – ${fmtShort(addDays(ws, 6))}</div>
+      <div class="date-center"><div class="date-main">${fmtShort(ws)} – ${fmtShort(addDays(ws, 6))}</div>
       <div class="date-sub">${isCur ? "Esta semana" : "Semana pasada"}</div></div>
       <button class="arrow next" data-a="week" data-v="7" aria-label="Semana siguiente" ${isCur ? "disabled" : ""}>${I.chevron}</button>
     </div>
     ${n === 0 ? '<p class="p">Esta semana aún no empieza.</p>' : `
-    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
-      <div style="font-family:var(--display);font-weight:800;font-size:40px;line-height:1;color:var(--green-dark)">${r.pct}%</div>
-      <div class="small muted" style="font-weight:700">cumplimiento promedio<br>+${r.xp} XP ganados</div>
+    <div class="rep-top">
+      <div class="rep-ring"><svg viewBox="0 0 76 76" role="img" aria-label="${r.pct}% de cumplimiento">
+        <circle cx="38" cy="38" r="30" fill="none" stroke="var(--green-light)" stroke-width="9"/>
+        <circle cx="38" cy="38" r="30" fill="none" stroke="var(--green)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${dash.toFixed(1)} ${(circ - dash).toFixed(1)}" transform="rotate(-90 38 38)"/>
+      </svg><b>${r.pct}%</b></div>
+      <div><div class="rep-big">+${r.xp} XP</div><div class="small muted" style="font-weight:700">cumplimiento promedio de la semana</div>
+      ${r.weigh ? `<div class="rep-w">⚖️ ${r.weigh.kg} kg${r.prevWeigh ? ` <span>${r.weigh.kg - r.prevWeigh.kg <= 0 ? "▼" : "▲"} ${Math.abs(r.weigh.kg - r.prevWeigh.kg).toFixed(1)}</span>` : ""}</div>` : ""}</div>
     </div>
-    <div class="kpis">
-      ${kpi("comidas", "plate", `${r.meals}/${r.mealsMax}`, "Comidas")}
-      ${kpi("agua", "drop", `${r.agua}/${n}`, "Días con agua completa")}
-      ${kpi("suplementos", "pill", `${r.supp}/${n}`, "Días con suplementos")}
-      ${kpi("aguacate", "avocado", `${r.agu}/${n}`, "Días con aguacate")}
-      ${kpi("entreno", "dumbbell", `${r.workouts}/${WEEKLY_WORKOUT_GOAL}`, "Entrenos")}
-      ${kpi("pasos", "steps", r.stepsAvg !== null ? Math.round(r.stepsAvg).toLocaleString("es") : "—", "Pasos promedio")}
-      ${kpi("sueno", "sleep", r.sleepAvg !== null ? r.sleepAvg.toFixed(1) + " h" : "—", "Sueño promedio")}
-      ${kpi("peso", "scale", r.weigh ? r.weigh.kg + " kg" : "—", r.prevWeigh ? `Antes ${r.prevWeigh.kg} kg` : "Peso de la semana")}
-    </div>
-    ${r.best ? `<p class="small" style="margin-top:12px;font-weight:700">Mejor día: <span style="text-transform:capitalize">${fmtLong(r.best.k)}</span> (${r.best.p}%)</p>` : ""}
+    <div class="hbars">${rows.map(([id, ic, l, ratio, v]) => {
+      const p = Math.min(100, Math.round(ratio * 100)), low = r.lowest && r.lowest.id === id;
+      return `<div class="hbar ${low ? "low" : p >= 80 ? "ok" : "mid"}"><span class="hb-ic">${ic}</span><span class="hb-l">${l}</span>
+        <span class="hb-track"><i style="width:${Math.max(p, p ? 4 : 0)}%"></i></span><span class="hb-v">${v}</span></div>`;
+    }).join("")}</div>
+    ${r.best ? `<p class="small" style="margin-top:12px;font-weight:700">⭐ Mejor día: ${fmtLong(r.best.k)} (${r.best.p}%)</p>` : ""}
     ${r.lowest ? `<details class="tip"><summary><span class="tip-ic" aria-hidden="true">${TIP_ICON[r.lowest.id] || "💡"}</span><span><span class="k">Lo que más te costó</span><b>${r.lowest.label}</b><span class="tip-more">Ver consejo del plan</span></span></summary><p>${esc(r.lowest.tip)}</p><div class="src">${r.lowest.src}</div></details>`
       : '<div class="tip" style="background:var(--green-light)"><div class="k" style="color:var(--green-dark)">Semana completa</div><p>Cumpliste todos los indicadores. Sigue así.</p></div>'}
     <button class="btn btn-ghost" style="margin-top:12px" data-a="shareReport">${I.share} Compartir reporte</button>`}
@@ -370,7 +418,7 @@ function renderWeight() {
     </svg></div>`;
   }
   const diff = last.base ? null : +(last.kg - base.kg).toFixed(1);
-  return `<div class="section-title">Peso</div>
+  return `<div class="section-title">${secIcon("⚖️")} Peso</div>
   <div class="card">
     <div class="card-head"><div><div class="card-title">${last.kg} kg</div>
       <div class="small muted" style="font-weight:700">${diff === null ? `Punto de partida (${fmtShort(base.date)})` : `${diff > 0 ? "+" : ""}${diff} kg desde el inicio (${base.kg} kg)`}</div></div>
@@ -446,17 +494,46 @@ function renderPlan() {
 
 /* ===================== REGISTRO ===================== */
 function renderRegistro() {
-  const keys = Object.keys(state.days).sort().reverse();
-  const color = p => p >= 100 ? ["var(--green)", "#fff"] : p >= STREAK_MIN_PCT ? ["var(--green-light)", "var(--green-dark)"] : p > 0 ? ["var(--gold-light)", "#8A5D00"] : ["var(--bg-soft)", "var(--ink-faint)"];
-  let h = `<div class="reg-banner"><span aria-hidden="true">📒</span> Tu historial día a día. Toca un día para verlo.</div>`;
-  if (!keys.length) return h + `<div class="card"><p class="p">Aún no hay días registrados. Empieza marcando tu primera comida en Hoy.</p></div>`;
-  h += `<div class="card" style="padding:4px 16px">${keys.map(k => {
-    const d = getDay(k), p = dayPct(k), [bg, fg] = color(p);
-    const icons = d.workouts.slice(0, 3).map(w => I[(WORKOUT_TYPES.find(t => t.id === w.type) || WORKOUT_TYPES[0]).icon]).join("");
+  const ym = ui.regMonth, first = ym + "-01", cur = todayKey().slice(0, 7);
+  const lead = (keyToDate(first).getDay() + 6) % 7;
+  const dim = new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate();
+  const days = [...Array(dim)].map((_, i) => ym + "-" + pad(i + 1));
+  const past = days.filter(k => k <= todayKey() && state.days[k]);
+  const avg = past.length ? Math.round(past.reduce((a, k) => a + dayPct(k), 0) / past.length) : 0;
+  const lvl = p => p >= 100 ? 4 : p >= STREAK_MIN_PCT ? 3 : p >= 50 ? 2 : p > 0 ? 1 : 0;
+  const prevYm = toKey(new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 2, 1)).slice(0, 7);
+  const nextYm = toKey(new Date(+ym.slice(0, 4), +ym.slice(5, 7), 1)).slice(0, 7);
+  let h = `<div class="card">
+    <div class="date-nav" style="margin-bottom:14px">
+      <button class="arrow" data-a="month" data-v="${prevYm}" aria-label="Mes anterior">${I.chevron}</button>
+      <div class="date-center"><div class="date-main">${fmtMonth(ym)}</div><div class="date-sub">Toca un día para verlo</div></div>
+      <button class="arrow next" data-a="month" data-v="${nextYm}" aria-label="Mes siguiente" ${ym >= cur ? "disabled" : ""}>${I.chevron}</button>
+    </div>
+    <div class="cal">
+      ${["L", "M", "M", "J", "V", "S", "D"].map(l => `<span class="cal-h">${l}</span>`).join("")}
+      ${'<span></span>'.repeat(lead)}
+      ${days.map(k => {
+        const fut = k > todayKey(), p = state.days[k] ? dayPct(k) : 0, d = getDay(k);
+        return `<button class="cal-d l${fut ? "f" : lvl(p)} ${k === todayKey() ? "today" : ""}" ${fut ? "disabled" : `data-a="openDay" data-v="${k}"`} aria-label="${fmtLong(k)}: ${p}%">
+          <span>${+k.slice(8)}</span>${d.workouts.length ? '<i class="cal-w"></i>' : ""}${p === 100 ? '<em>⭐</em>' : ""}</button>`;
+      }).join("")}
+    </div>
+    <div class="cal-legend"><span>Menos</span>${[0, 1, 2, 3, 4].map(i => `<i class="l${i}"></i>`).join("")}<span>Más</span><span class="cal-w-l"><i class="cal-w"></i> entreno</span></div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-b green"><span>⭐</span><b>${past.filter(k => dayPct(k) === 100).length}</b><small>Días perfectos</small></div>
+    <div class="kpi-b coral"><span>🔥</span><b>${past.filter(k => dayPct(k) >= STREAK_MIN_PCT).length}</b><small>Días en racha</small></div>
+    <div class="kpi-b gold"><span>📊</span><b>${avg}%</b><small>Promedio</small></div>
+  </div>`;
+
+  const notes = days.filter(k => getDay(k).notes || getDay(k).mood).reverse();
+  if (notes.length) h += `<div class="section-title">${secIcon("📝")} Tus notas del mes</div>
+  <div class="card" style="padding:4px 16px">${notes.map(k => {
+    const d = getDay(k);
     return `<button class="reg-item" data-a="openDay" data-v="${k}">
-      <div class="reg-pct" style="background:${bg};color:${fg}">${p}%</div>
-      <div style="flex:1;min-width:0"><div class="reg-d">${fmtLong(k)}</div><div class="reg-n">${esc(d.notes || `${doneCount(k)} de ${TOTAL_TASKS} tareas`)}</div></div>
-      <div class="reg-icons">${icons}${d.mood ? I[MOODS[d.mood - 1][0]] : ""}</div></button>`;
+      <span class="reg-mood">${d.mood ? MOODS[d.mood - 1][0] : "📝"}</span>
+      <div style="flex:1;min-width:0"><div class="reg-d">${fmtLong(k)}</div><div class="reg-n">${esc(d.notes || MOODS[d.mood - 1][1])}</div></div></button>`;
   }).join("")}</div>`;
   return h;
 }

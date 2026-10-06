@@ -5,7 +5,9 @@ const todayKey = () => toKey(new Date());
 const keyToDate = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
 const addDays = (k, n) => { const d = keyToDate(k); d.setDate(d.getDate() + n); return toKey(d); };
 const daysBetween = (a, b) => Math.round((keyToDate(b) - keyToDate(a)) / 86400000);
-const fmtLong = k => keyToDate(k).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const fmtLong = k => cap(keyToDate(k).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" }));
+const fmtMonth = ym => cap(keyToDate(ym + "-01").toLocaleDateString("es-ES", { month: "long", year: "numeric" }));
 const fmtShort = k => keyToDate(k).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 const weekday2 = k => keyToDate(k).toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "").slice(0, 2);
 const toMin = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
@@ -221,17 +223,17 @@ function maxWeekWorkouts() {
   return best;
 }
 const BADGES = [
-  { id: "dia100", name: "Día perfecto", desc: "Un día al 100%", icon: "star", color: "#F2B233", test: () => Object.keys(state.days).some(k => dayPct(k) === 100) },
-  { id: "racha3", name: "Racha 3", desc: "3 días seguidos", icon: "flame", color: "#17B26A", test: () => bestStreak() >= 3 },
-  { id: "racha7", name: "Racha 7", desc: "7 días seguidos", icon: "flame", color: "#FF6A4D", test: () => bestStreak() >= 7 },
-  { id: "racha14", name: "Racha 14", desc: "14 días seguidos", icon: "flame", color: "#E44F33", test: () => bestStreak() >= 14 },
-  { id: "racha30", name: "Racha 30", desc: "30 días seguidos", icon: "trophy", color: "#0E8F53", test: () => bestStreak() >= 30 },
-  { id: "racha60", name: "Racha 60", desc: "60 días seguidos", icon: "trophy", color: "#B37A00", test: () => bestStreak() >= 60 },
-  { id: "agua7", name: "Hidratado", desc: "7 días con el agua completa", icon: "drop", color: "#2D9CDB", test: () => maxWaterRun() >= 7 },
-  { id: "entreno4", name: "Semana activa", desc: `${WEEKLY_WORKOUT_GOAL} entrenos en una semana`, icon: "dumbbell", color: "#17B26A", test: () => maxWeekWorkouts() >= WEEKLY_WORKOUT_GOAL },
-  { id: "pesaje1", name: "Primer pesaje", desc: "Registra tu peso", icon: "scale", color: "#7B61FF", test: () => weighs().length >= 1 },
-  { id: "pesaje4", name: "Seguimiento", desc: "4 pesajes registrados", icon: "scale", color: "#5A3FD9", test: () => weighs().length >= 4 },
-  { id: "nivel5", name: "Imparable", desc: "Llega al nivel 5", icon: "bolt", color: "#FF6A4D", test: () => levelInfo().n >= 5 }
+  { id: "dia100", name: "Día perfecto", desc: "Un día al 100%", icon: "star", color: "#F2B233", test: () => Object.keys(state.days).some(k => dayPct(k) === 100), prog: () => [Math.max(0, ...Object.keys(state.days).map(dayPct)), 100] },
+  { id: "racha3", name: "Racha 3", desc: "3 días seguidos", icon: "flame", color: "#17B26A", test: () => bestStreak() >= 3, prog: () => [bestStreak(), 3] },
+  { id: "racha7", name: "Racha 7", desc: "7 días seguidos", icon: "flame", color: "#FF6A4D", test: () => bestStreak() >= 7, prog: () => [bestStreak(), 7] },
+  { id: "racha14", name: "Racha 14", desc: "14 días seguidos", icon: "flame", color: "#E44F33", test: () => bestStreak() >= 14, prog: () => [bestStreak(), 14] },
+  { id: "racha30", name: "Racha 30", desc: "30 días seguidos", icon: "trophy", color: "#0E8F53", test: () => bestStreak() >= 30, prog: () => [bestStreak(), 30] },
+  { id: "racha60", name: "Racha 60", desc: "60 días seguidos", icon: "trophy", color: "#B37A00", test: () => bestStreak() >= 60, prog: () => [bestStreak(), 60] },
+  { id: "agua7", name: "Hidratado", desc: "7 días con el agua completa", icon: "drop", color: "#2D9CDB", test: () => maxWaterRun() >= 7, prog: () => [maxWaterRun(), 7] },
+  { id: "entreno4", name: "Semana activa", desc: `${WEEKLY_WORKOUT_GOAL} entrenos en una semana`, icon: "dumbbell", color: "#17B26A", test: () => maxWeekWorkouts() >= WEEKLY_WORKOUT_GOAL, prog: () => [maxWeekWorkouts(), WEEKLY_WORKOUT_GOAL] },
+  { id: "pesaje1", name: "Primer pesaje", desc: "Registra tu peso", icon: "scale", color: "#7B61FF", test: () => weighs().length >= 1, prog: () => [weighs().length, 1] },
+  { id: "pesaje4", name: "Seguimiento", desc: "4 pesajes registrados", icon: "scale", color: "#5A3FD9", test: () => weighs().length >= 4, prog: () => [weighs().length, 4] },
+  { id: "nivel5", name: "Imparable", desc: "Llega al nivel 5", icon: "bolt", color: "#FF6A4D", test: () => levelInfo().n >= 5, prog: () => [levelInfo().n, 5] }
 ];
 const earnedBadges = () => BADGES.filter(b => b.test());
 

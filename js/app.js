@@ -2,16 +2,42 @@
 const XP_PER_TASK = Math.round(100 / TOTAL_TASKS);
 const haptic = () => { if (navigator.vibrate) navigator.vibrate(12); };
 
-function afterTask(k, before) {
-  const after = doneCount(k);
-  if (after > before) { haptic(); toast(`${I.check.replace("<svg", '<svg width="16" height="16"')} <b>+${XP_PER_TASK} XP</b> ${after === TOTAL_TASKS ? "· ¡Día perfecto!" : ""}`); }
+// isOn dice si el ítem quedó marcado; part da un texto de avance para tareas de varias partes (agua, suplementos).
+function toggleTask(fn, el, flash, isOn, part) {
+  const k = ui.date, before = doneCount(k), rect = el && el.getBoundingClientRect();
+  editDay(k, fn);
+  ui.flash = flash;
+  const after = doneCount(k), on = isOn(getDay(k));
   render();
+  if (after > before) {
+    haptic();
+    if (rect) xpPop(rect, `+${XP_PER_TASK} XP`);
+    if (after === TOTAL_TASKS) { confetti(); toast(`🎉 <b>¡Día perfecto!</b>`); }
+  } else if (on) {
+    if (navigator.vibrate) navigator.vibrate(6);
+    if (rect && part) xpPop(rect, part(getDay(k)), "soft");
+  }
   checkCelebrations();
 }
-function toggleTask(fn) {
-  const k = ui.date, before = doneCount(k);
-  editDay(k, fn);
-  afterTask(k, before);
+// "+14 XP" que sube desde donde tocaste.
+function xpPop(rect, text, kind = "") {
+  const n = document.createElement("div");
+  n.className = "xp-pop " + kind; n.textContent = text;
+  n.style.left = (rect.left + rect.width / 2) + "px"; n.style.top = (rect.top + rect.height / 2) + "px";
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 1000);
+}
+function confetti() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const box = document.createElement("div"), colors = ["#17B26A", "#FF6A4D", "#F2B233", "#2D9CDB", "#7B61FF"];
+  box.className = "confetti";
+  for (let i = 0; i < 70; i++) {
+    const c = document.createElement("i");
+    c.style.cssText = `left:${Math.random() * 100}%;background:${colors[i % colors.length]};animation-delay:${Math.random() * .4}s;animation-duration:${1.6 + Math.random()}s;transform:rotate(${Math.random() * 360}deg)`;
+    box.appendChild(c);
+  }
+  document.body.appendChild(box);
+  setTimeout(() => box.remove(), 3200);
 }
 
 function checkCelebrations() {
@@ -32,7 +58,7 @@ function checkCelebrations() {
 
 const actions = {
   tab: v => { ui.tab = v; ui.sheet = null; render(); window.scrollTo(0, 0); },
-  day: v => { const n = addDays(ui.date, +v); if (n <= todayKey()) { ui.date = n; ui.open.clear(); render(); } },
+  day: v => { const n = addDays(ui.date, +v); if (n <= todayKey()) { ui.date = n; ui.open.clear(); ui.closed.clear(); render(); } },
   today: () => { ui.date = todayKey(); render(); },
   openDay: v => { ui.date = v; ui.tab = "hoy"; render(); window.scrollTo(0, 0); },
   opt: v => {
@@ -54,15 +80,24 @@ const actions = {
     card.querySelectorAll(".rec-tabs .chip").forEach(c => c.classList.toggle("on", c === el));
     card.querySelectorAll(".rec-group").forEach(g => { g.hidden = g.dataset.rec !== v; });
   },
-  openMeal: v => { ui.open.has(v) ? ui.open.delete(v) : ui.open.add(v); render(); },
-  meal: v => toggleTask(d => { d.meals[v].done = !d.meals[v].done; }),
-  water: v => toggleTask(d => { d.water[+v] = !d.water[+v]; }),
-  supp: v => toggleTask(d => { d.supplements[v] = !d.supplements[v]; }),
-  aguacate: () => toggleTask(d => { d.aguacate = !d.aguacate; }),
+  openMeal: (v, el) => {
+    if (el.closest(".meal").classList.contains("open")) { ui.open.delete(v); ui.closed.add(v); }
+    else { ui.open.add(v); ui.closed.delete(v); }
+    render();
+  },
+  meal: (v, el) => {
+    const was = getDay(ui.date).meals[v].done;
+    // Al completar una comida se pliega; al desmarcarla queda como estaba.
+    if (!was) { ui.open.delete(v); ui.closed.add(v); }
+    toggleTask(d => { d.meals[v].done = !was; }, el, "meal-" + v, d => d.meals[v].done);
+  },
+  water: (v, el) => toggleTask(d => { d.water[+v] = !d.water[+v]; }, el, "water" + v, d => d.water[+v], d => `💧 ${d.water.filter(Boolean).length}/3`),
+  supp: (v, el) => toggleTask(d => { d.supplements[v] = !d.supplements[v]; }, el, "supp-" + v, d => d.supplements[v], d => `💊 ${+d.supplements.proteina + +d.supplements.creatina}/2`),
+  aguacate: (v, el) => toggleTask(d => { d.aguacate = !d.aguacate; }, el, "aguacate", d => d.aguacate),
   steps: v => { editDay(ui.date, d => { d.steps = +d.steps === +v ? "" : v; }); render(); },
   sleep: v => { editDay(ui.date, d => { d.sleep = +d.sleep === +v ? "" : v; }); render(); },
   mood: v => { editDay(ui.date, d => { d.mood = d.mood === +v ? null : +v; }); render(); },
-  tipDay: v => { ui.tipDay = ui.tipDay === v ? null : v; render(); },
+  month: v => { if (v <= todayKey().slice(0, 7)) { ui.regMonth = v; render(); } },
   week: v => { const n = addDays(ui.reportWeek, +v); if (n <= weekStart(todayKey())) { ui.reportWeek = n; render(); } },
   sheet: v => { ui.sheet = v === "workout" ? { kind: "workout", type: null, duration: 30, intensity: 2, routineName: "" } : { kind: v }; renderSheet(); },
   closeSheet: () => { ui.sheet = null; render(); checkCelebrations(); },
