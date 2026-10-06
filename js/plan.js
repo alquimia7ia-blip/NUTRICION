@@ -224,7 +224,7 @@ const MEAL_ORDER = ["desayuno","almuerzo","snack","cena"];
 const OPCION_CORTA = {
   desayuno: {
     proteina: [["🥚", "4 huevos", "enteros"], ["🧀", "3 huevos + queso", "40 gr queso o cuajada"], ["🥓", "3 huevos + jamón", "2 tajadas"], ["🥣", "3 huevos + yogurt", "80 gr griego"], ["🥤", "Proteína en polvo", "1 scoop · ocasional"]],
-    carbohidrato: [["🫓", "Arepa", "1 grande o 2 medianas"], ["🥣", "Avena o granola", "60 gr"], ["🍞", "Pan de arroz", "4 tajadas"], ["🍌", "Plátano maduro", "140 gr"], ["🍠", "Yuca", "160 gr"], ["🥔", "Papa", "200 gr"]],
+    carbohidrato: [["arepa", "Arepa", "1 grande o 2 medianas"], ["🥣", "Avena o granola", "60 gr"], ["🍞", "Pan de arroz", "4 tajadas"], ["🍌", "Plátano maduro", "140 gr"], ["🍠", "Yuca", "160 gr"], ["🥔", "Papa", "200 gr"]],
     grasas: [["🫒", "Aceite de oliva", "2 Cdas postreras"], ["🧈", "Ghee o mantequilla", "2 Cdas postreras"], ["🥑", "Aguacate", "40 g"], ["🥜", "Maní o nueces", "15 gr"], ["🥜", "Mantequilla de maní", "15 gr"]]
   },
   almuerzo: {
@@ -237,7 +237,7 @@ const OPCION_CORTA = {
   },
   cena: {
     proteina: [["🥚", "3 huevos", "enteros"], ["🥓", "2 huevos + jamón o pollo", "2 tajadas o 30 gr"], ["🧀", "2 huevos + queso", "40 gr queso o cuajada"], ["🍗", "Pollo", "120 gr cocido"], ["🥩", "Res o cerdo", "120 gr cocido"], ["🐟", "Pescado", "120 gr cocido"]],
-    carbohidrato: [["🫓", "Arepa", "1 grande o 2 medianas"], ["🍞", "Pan de arroz", "4 tajadas"], ["🍚", "Arroz o quinoa", "160 gr cocido"], ["🍌", "Plátano maduro", "140 gr"], ["🍌", "Plátano verde", "160 gr"], ["🥔", "Papa", "200 gr"], ["🥔", "Papa criolla", "200 gr"], ["🍠", "Yuca", "160 gr"], ["🍿", "Crispetas caseras", "60 gr · sin azúcar"]],
+    carbohidrato: [["arepa", "Arepa", "1 grande o 2 medianas"], ["🍞", "Pan de arroz", "4 tajadas"], ["🍚", "Arroz o quinoa", "160 gr cocido"], ["🍌", "Plátano maduro", "140 gr"], ["🍌", "Plátano verde", "160 gr"], ["🥔", "Papa", "200 gr"], ["🥔", "Papa criolla", "200 gr"], ["🍠", "Yuca", "160 gr"], ["🍿", "Crispetas caseras", "60 gr · sin azúcar"]],
     grasas: [["🫒", "Aceite de oliva o aguacate", "2 Cdas postreras"], ["🧈", "Ghee o mantequilla", "2 Cdas postreras"]]
   }
 };
@@ -250,10 +250,10 @@ const RESUMEN = {
   aguacate: ["🥑", "Aguacate", "60 gr al día"],
   bebidas: [["🥛", "Bebida vegetal", "sin azúcar"], ["🌺", "Jamaica", "en jarra"], ["🍓", "Infusión de frutas", "con hierbabuena"], ["🍋", "Agua o soda", "con limón"]],
   recetas: {
-    desayuno: ["🍳", "🍅", "🥑", "🧇", "🫓", "🥣", "🥞", "🌯", "🍞", "🫐", "🥣", "🥤"],
+    desayuno: ["🍳", "🍅", "🥑", "🧇", "arepa", "🥣", "🥞", "🌯", "🍞", "🫐", "🥣", "🥤"],
     almuerzo: ["💡", "🍌", "🍟", "🥔", "🥑", "🍌", "🍝", "🍝", "🍅", "🍚", "🥩", "🍯", "🌿", "🍗", "🐟", "🌿", "📝"],
     snack: ["🥣", "🧀", "🍓", "🥞", "🥣", "🧀", "🥤", "🍌", "🍫"],
-    cena: ["🥪", "🍕", "🌮", "🍲", "🫓", "🍿", "🥦", "🥒", "🥗"]
+    cena: ["🥪", "🍕", "🌮", "🍲", "arepa", "🍿", "🥦", "🥒", "🥗"]
   },
   recomendaciones: [
     ["😊", "Disfruta el proceso"], ["🔁", "Las recaídas son normales"], ["🚫", "Evita ultraprocesados"], ["🌈", "Come variado"],
