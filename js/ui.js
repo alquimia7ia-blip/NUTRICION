@@ -317,6 +317,7 @@ function renderProgreso() {
   h += renderReport();
   h += habitsChart(last7);
   h += renderWeight();
+  h += renderComposicion();
 
   h += `<div class="section-title">${secIcon("🏅")} Insignias · ${earned.size}/${BADGES.length}</div>
   <div class="card"><div class="badges">${BADGES.map(b => {
@@ -400,7 +401,10 @@ function renderWeight() {
   if (pts.length >= 2) {
     const W = 340, H = 170, L = 38, R = 14, T = 16, B = 26;
     const t0 = keyToDate(pts[0].date).getTime(), t1 = keyToDate(last.date).getTime() || t0 + 1;
-    const ks = pts.map(p => p.kg), lo = Math.floor(Math.min(...ks) - 1), hi = Math.ceil(Math.max(...ks) + 1);
+    const goal = COMPOSICION.objetivo.peso;
+    const multiYear = pts[0].date.slice(0, 4) !== last.date.slice(0, 4);
+    const fmtDay = k => multiYear ? keyToDate(k).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : fmtShort(k);
+    const ks = pts.map(p => p.kg), lo = Math.floor(Math.min(goal, ...ks) - 1), hi = Math.ceil(Math.max(...ks) + 1);
     const x = p => L + (keyToDate(p.date).getTime() - t0) / Math.max(1, t1 - t0) * (W - L - R);
     const y = kg => T + (hi - kg) / Math.max(1, hi - lo) * (H - T - B);
     const line = pts.map((p, i) => `${i ? "L" : "M"}${x(p).toFixed(1)} ${y(p.kg).toFixed(1)}`).join(" ");
@@ -409,11 +413,12 @@ function renderWeight() {
     chart = `<div class="weight-chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tendencia de peso">
       ${grid}
       <path d="${area}" fill="#17B26A" opacity=".10"/>
+      <line x1="${L}" x2="${W - R}" y1="${y(goal)}" y2="${y(goal)}" stroke="#FF6A4D" stroke-width="1.5" stroke-dasharray="4 4"/><text x="${W - R}" y="${y(goal) - 5}" text-anchor="end" font-size="10" font-weight="800" fill="#E44F33" font-family="Mulish, sans-serif">🎯 meta ${goal} kg</text>
       <path d="${line}" fill="none" stroke="#17B26A" stroke-width="2" stroke-linejoin="round"/>
       ${pts.map((p, i) => `<circle cx="${x(p)}" cy="${y(p.kg)}" r="${i === pts.length - 1 ? 6 : 4.5}" fill="${i === pts.length - 1 ? "#0E8F53" : "#17B26A"}" stroke="#fff" stroke-width="2"><title>${fmtShort(p.date)}: ${p.kg} kg</title></circle>`).join("")}
       <text x="${Math.min(x(last), W - R - 2)}" y="${y(last.kg) - 11}" text-anchor="end" font-size="12" font-weight="800" fill="#14231A" font-family="Mulish, sans-serif">${last.kg} kg</text>
-      <text x="${L}" y="${H - 6}" font-size="10" fill="#5F7166" font-family="Mulish, sans-serif">${fmtShort(pts[0].date)}</text>
-      <text x="${W - R}" y="${H - 6}" text-anchor="end" font-size="10" fill="#5F7166" font-family="Mulish, sans-serif">${fmtShort(last.date)}</text>
+      <text x="${L}" y="${H - 6}" font-size="10" fill="#5F7166" font-family="Mulish, sans-serif">${fmtDay(pts[0].date)}</text>
+      <text x="${W - R}" y="${H - 6}" text-anchor="end" font-size="10" fill="#5F7166" font-family="Mulish, sans-serif">${fmtDay(last.date)}</text>
     </svg></div>`;
   }
   const diff = last.base ? null : +(last.kg - base.kg).toFixed(1);
@@ -425,6 +430,101 @@ function renderWeight() {
     ${chart || '<p class="p">Registra tu peso cada 15 días para ver tu curva.</p>'}
     ${weighs().length ? `<div class="w-list" style="margin-top:8px">${weighs().sort((a, b) => b.date.localeCompare(a.date)).map(w =>
       `<div class="w-item"><span>${fmtShort(w.date)}</span><span>${w.kg} kg${w.fat ? ` · ${w.fat}% grasa` : ""} <button class="del" data-a="delWeight" data-v="${w.id}" aria-label="Borrar">×</button></span></div>`).join("")}</div>` : ""}
+  </div>`;
+}
+
+/* ===================== COMPOSICIÓN CORPORAL (Fitmao) ===================== */
+const num = (v, d = 1) => (+v).toLocaleString("es", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+// Barra con el rango normal del informe en verde y tu valor marcado.
+function rangeBar(label, ic, r, unit, d = 1) {
+  const lo = Math.min(r.min, r.v) - (r.max - r.min) * .35, hi = Math.max(r.max, r.v) + (r.max - r.min) * .35;
+  const pos = v => ((v - lo) / (hi - lo) * 100).toFixed(1);
+  const st = r.v > r.max ? "alto" : r.v < r.min ? "bajo" : "ok";
+  return `<div class="rbar ${st}">
+    <div class="rb-top"><span class="rb-l"><span aria-hidden="true">${ic}</span>${label}</span><b>${num(r.v, d)}${unit}</b><span class="rb-st">${st === "ok" ? "Normal" : st === "alto" ? "Alto" : "Bajo"}</span></div>
+    <div class="rb-track"><span class="rb-band" style="left:${pos(r.min)}%;width:${(pos(r.max) - pos(r.min)).toFixed(1)}%"></span><span class="rb-dot" style="left:${pos(r.v)}%"></span></div>
+    <div class="rb-scale"><span style="left:${pos(r.min)}%">${num(r.min, d)}</span><span style="left:${pos(r.max)}%">${num(r.max, d)}</span></div>
+  </div>`;
+}
+
+function bodyFigure(kind) {
+  const s = COMPOSICION.segmentos[kind], c = kind === "musculo" ? "#17B26A" : "#FF8A5C";
+  const lbl = (x, y, v, a = "middle") => `<text x="${x}" y="${y}" text-anchor="${a}" font-family="Mulish, sans-serif" font-size="11" font-weight="800" fill="#14231A">${num(v)} kg</text>`;
+  return `<svg viewBox="-40 0 320 230" class="body-fig" role="img" aria-label="${kind === "musculo" ? "Masa magra" : "Grasa"} por segmento">
+    <g fill="${c}" opacity=".9">
+      <circle cx="120" cy="24" r="16"/>
+      <rect x="96" y="44" width="48" height="74" rx="14"/>
+      <rect x="70" y="48" width="20" height="70" rx="10" transform="rotate(8 80 48)"/>
+      <rect x="150" y="48" width="20" height="70" rx="10" transform="rotate(-8 160 48)"/>
+      <rect x="98" y="122" width="20" height="92" rx="10"/>
+      <rect x="122" y="122" width="20" height="92" rx="10"/>
+    </g>
+    <g stroke="#A7B8AE" stroke-width="1.2" stroke-dasharray="3 3">
+      <path d="M72 84H40"/><path d="M168 84h32"/><path d="M120 82v0"/><path d="M104 180H58"/><path d="M136 180h46"/>
+    </g>
+    ${lbl(34, 80, s.brazoDer, "end")}<text x="34" y="93" text-anchor="end" font-size="9.5" font-weight="700" fill="#5F7166" font-family="Mulish, sans-serif">brazo der.</text>
+    ${lbl(206, 80, s.brazoIzq, "start")}<text x="206" y="93" text-anchor="start" font-size="9.5" font-weight="700" fill="#5F7166" font-family="Mulish, sans-serif">brazo izq.</text>
+    <rect x="93" y="70" width="54" height="20" rx="10" fill="#fff" opacity=".92"/>${lbl(120, 84, s.tronco)}
+    ${lbl(52, 176, s.piernaDer, "end")}<text x="52" y="189" text-anchor="end" font-size="9.5" font-weight="700" fill="#5F7166" font-family="Mulish, sans-serif">pierna der.</text>
+    ${lbl(188, 176, s.piernaIzq, "start")}<text x="188" y="189" text-anchor="start" font-size="9.5" font-weight="700" fill="#5F7166" font-family="Mulish, sans-serif">pierna izq.</text>
+    <text x="120" y="102" text-anchor="middle" font-size="9.5" font-weight="700" fill="#fff" font-family="Mulish, sans-serif">tronco</text>
+  </svg>`;
+}
+
+function renderComposicion() {
+  const C = COMPOSICION, g = C.grasaKg.v, m = C.smm, resto = +(C.peso.v - g - m).toFixed(1);
+  const seg = [["Grasa", g, "#FF8A5C"], ["Músculo esquelético", m, "#17B26A"], ["Agua, huesos y órganos", resto, "#9CD3F0"]];
+  const start = C.peso.v, goal = C.objetivo.peso, cur = (lastWeighIn() || { kg: start }).kg;
+  const lost = +(start - cur).toFixed(1), left = +(cur - goal).toFixed(1), gp = Math.max(0, Math.min(100, (start - cur) / (start - goal) * 100));
+  const scoreC = 2 * Math.PI * 24, scoreD = C.puntuacion / 100 * scoreC;
+  return `<div class="section-title">${secIcon("🧬")} Composición corporal</div>
+  <div class="card comp">
+    <div class="comp-head"><div><b>Análisis ${C.equipo}</b><span>${fmtLong(C.fecha)} · ${C.altura} cm · ${C.edad} años</span></div></div>
+
+    <div class="comp-tiles">
+      <div class="ct"><div class="ct-ring"><svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" fill="none" stroke="var(--green-light)" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="var(--green)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${scoreD.toFixed(1)} ${(scoreC - scoreD).toFixed(1)}" transform="rotate(-90 28 28)"/></svg><b>${num(C.puntuacion)}</b></div><small>Puntuación</small></div>
+      <div class="ct"><span class="ct-ic">🎂</span><b class="ct-v">${C.edadFisiologica}</b><small>Edad física<br><em>tu edad: ${C.edad}</em></small></div>
+      <div class="ct"><span class="ct-ic">🔥</span><b class="ct-v">${C.tmb.toLocaleString("es")}</b><small>kcal en reposo<br><em>metabolismo basal</em></small></div>
+    </div>
+
+    <div class="comp-sub">¿De qué están hechos tus ${num(C.peso.v)} kg?</div>
+    <div class="stack" role="img" aria-label="Grasa ${num(g)} kg, músculo ${num(m)} kg, resto ${num(resto)} kg">${seg.map(([l, v, c]) => `<i style="flex:${v};background:${c}"></i>`).join("")}</div>
+    <div class="stack-legend">${seg.map(([l, v, c]) => `<span><i style="background:${c}"></i>${l}<b>${num(v)} kg</b></span>`).join("")}</div>
+    <div class="comp-mini">
+      <div><b>${num(C.pbf)}%</b><small>grasa corporal</small></div>
+      <div><b>${num(C.imc)}</b><small>IMC</small></div>
+      <div><b>${num(C.pesoSinGrasa.v)} kg</b><small>peso sin grasa</small></div>
+    </div>
+
+    <div class="goal-card">
+      <div class="gc-top"><span class="gc-ic">🎯</span><div><b>Peso objetivo: ${num(goal)} kg</b><small>Bajar ${num(-C.objetivo.controlGrasa)} kg de grasa y mantener el músculo</small></div></div>
+      <div class="gc-track"><i style="width:${gp.toFixed(1)}%"></i><span class="gc-flag">🏁</span></div>
+      <div class="gc-lbls"><span>${num(start)} kg</span><span><b>${lost > 0 ? `−${num(lost)} kg` : "Empiezas hoy"}</b> · faltan ${num(Math.max(0, left))} kg</span><span>${num(goal)} kg</span></div>
+    </div>
+
+    <div class="comp-sub">Frente al rango normal del informe</div>
+    ${rangeBar("Grasa", "🟠", C.grasaKg, " kg")}
+    ${rangeBar("Grasa visceral", "🩺", C.visceral, "")}
+    ${rangeBar("Cintura-cadera", "📏", C.cinturaCadera, "", 2)}
+    ${rangeBar("Peso", "⚖️", C.peso, " kg")}
+
+    <div class="comp-sub">Por zonas del cuerpo</div>
+    <div class="chips seg-tabs">${[["musculo", "💪 Músculo"], ["grasa", "🟠 Grasa"]].map(([k, l], i) => `<button class="chip ${i ? "" : "on"}" data-a="segTab" data-v="${k}">${l}</button>`).join("")}</div>
+    ${["musculo", "grasa"].map((k, i) => `<div class="seg-fig" data-seg="${k}" ${i ? "hidden" : ""}>${bodyFigure(k)}</div>`).join("")}
+
+    <details class="comp-all"><summary>Ver todos los valores del informe</summary>
+      <div class="ca-list">${[
+        ["Agua total", C.agua, " L"], ["Agua extracelular", C.ecf, " L"], ["Agua intracelular", C.icf, " L"],
+        ["Proteínas", C.proteinas, " kg"], ["Minerales", C.minerales, " kg"], ["Volumen muscular", C.volumenMuscular, " kg"],
+        ["Peso sin grasa", C.pesoSinGrasa, " kg"]
+      ].map(([l, r, u]) => `<div class="ca-row"><span>${l}</span><b>${num(r.v)}${u}</b><small>${num(r.min)} – ${num(r.max)}</small></div>`).join("")}
+        <div class="ca-row"><span>Músculo esquelético</span><b>${num(C.smm)} kg</b><small></small></div>
+        <div class="ca-row"><span>Mineral óseo</span><b>${num(C.oseo)} kg</b><small></small></div>
+        <div class="ca-row"><span>Somatotipo</span><b>${C.somatotipo}</b><small>${C.recomendacion}</small></div>
+      </div>
+      <p class="small muted" style="margin-top:8px;font-weight:600">Para comparar tu progreso, repite el análisis en el mismo equipo y en condiciones parecidas.</p>
+    </details>
   </div>`;
 }
 

@@ -264,3 +264,29 @@ const RESUMEN = {
     ["↩️", "Retoma sin compensar"]
   ]
 };
+
+/* Análisis de composición corporal (Fitmao-280) del 6 oct 2026, tal cual el informe.
+   v = valor, min/max = rango normal que trae el informe. */
+const COMPOSICION = {
+  fecha: "2026-10-06", equipo: "Fitmao-280", altura: 183, edad: 26, genero: "Masculino",
+  puntuacion: 81.2, edadFisiologica: 30, tmb: 2082,
+  peso: { v: 108.7, min: 62, max: 83.7 },
+  grasaKg: { v: 29.3, min: 8.8, max: 17.6 },
+  pbf: 27.0, imc: 32.4, smm: 45.3,
+  pesoSinGrasa: { v: 79.3, min: 56.3, max: 68.8 },
+  volumenMuscular: { v: 74.8, min: 53.2, max: 65.0 },
+  agua: { v: 58.2, min: 61.1, max: 74.7 },
+  ecf: { v: 21.9, min: 15.7, max: 19.2 },
+  icf: { v: 36.2, min: 25.6, max: 31.3 },
+  proteinas: { v: 15.6, min: 11.1, max: 13.5 },
+  minerales: { v: 5.4, min: 3.8, max: 4.6 },
+  oseo: 4.4,
+  visceral: { v: 13.4, min: 1.0, max: 9.0 },
+  cinturaCadera: { v: 1.00, min: 0.80, max: 0.90 },
+  objetivo: { peso: 93.3, controlPeso: -15.4, controlGrasa: -15.4, controlMusculo: 0 },
+  somatotipo: "Obesidad", recomendacion: "Reducción de grasa",
+  segmentos: {
+    musculo: { brazoDer: 4.8, brazoIzq: 4.7, tronco: 34.7, piernaDer: 12.0, piernaIzq: 11.3 },
+    grasa: { brazoDer: 1.9, brazoIzq: 2.0, tronco: 16.5, piernaDer: 3.7, piernaIzq: 3.6 }
+  }
+};

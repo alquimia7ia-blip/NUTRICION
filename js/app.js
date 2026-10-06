@@ -80,6 +80,11 @@ const actions = {
     card.querySelectorAll(".rec-tabs .chip").forEach(c => c.classList.toggle("on", c === el));
     card.querySelectorAll(".rec-group").forEach(g => { g.hidden = g.dataset.rec !== v; });
   },
+  segTab: (v, el) => {
+    const card = el.closest(".card");
+    card.querySelectorAll(".seg-tabs .chip").forEach(c => c.classList.toggle("on", c === el));
+    card.querySelectorAll(".seg-fig").forEach(f => { f.hidden = f.dataset.seg !== v; });
+  },
   openMeal: (v, el) => {
     if (el.closest(".meal").classList.contains("open")) { ui.open.delete(v); ui.closed.add(v); }
     else { ui.open.add(v); ui.closed.delete(v); }
@@ -241,6 +246,12 @@ function reminderTick() {
 function init() {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   if (state.settings.tz !== tz) editSettings(s => { s.tz = tz; });
+  // El pesaje del análisis Fitmao queda como primer registro de peso (una sola vez).
+  if (!state.settings.seededFitmao) {
+    if (!weighs().some(w => w.date === COMPOSICION.fecha))
+      state.weighIns.push({ id: "fitmao-" + COMPOSICION.fecha, date: COMPOSICION.fecha, kg: COMPOSICION.peso.v, fat: COMPOSICION.pbf, updatedAt: Date.now() });
+    editSettings(s => { s.seededFitmao = true; });
+  }
   if (!state.settings.initialized) {
     state.settings.initialized = true;
     state.settings.seenBadges = earnedBadges().map(b => b.id);
