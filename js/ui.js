@@ -120,12 +120,14 @@ function renderHoy() {
   h += `<div class="section-title">${secIcon("🍽️")} Comidas <span class="sec-count">${mealsDone}/4</span></div>
   <div class="track-list">${MEAL_ORDER.map(m => mealRow(m, k, nn)).join("")}</div>`;
 
-  const W = ["AM", "medio día", "PM"];
-  h += `<div class="section-title">${secIcon("💧")} Agua · ${String(PLAN.hidratacion.metaLitros).replace(".", ",")} L <span class="sec-count">${d.water.filter(Boolean).length}/3</span></div>
-  <div class="track-list">
-    <div class="water-row">${W.map((l, i) => `<button class="bottle ${d.water[i] ? "on" : ""} ${ui.flash === "water" + i ? "pop" : ""}" data-a="water" data-v="${i}" aria-pressed="${d.water[i]}" aria-label="Termo ${l}">
-      <span class="bottle-body"><span class="bottle-fill"></span><span class="bottle-ic">${d.water[i] ? I.check : I.drop}</span></span>
-      <b>Termo ${l}</b><small>1 L</small></button>`).join("")}</div>
+  const ml = waterMl(d), meta = PLAN.hidratacion.metaLitros * 1000;
+  h += `<div class="section-title">${secIcon("💧")} Agua <span class="sec-count">${fmtL(ml)} de ${fmtL(meta)}</span></div>
+  <div class="water-card">
+    <div class="water-row">${WATER.map((w, i) => `<button class="bottle ${w.ml < 1000 ? "half" : ""} ${d.water[i] ? "on" : ""} ${ui.flash === "water" + i ? "pop" : ""}" data-a="water" data-v="${i}" aria-pressed="${d.water[i]}" aria-label="${w.label}, ${fmtL(w.ml)}">
+      <span class="bottle-slot"><span class="bottle-body"><span class="bottle-fill"></span><span class="bottle-ic">${d.water[i] ? I.check : I.drop}</span></span></span>
+      <b>${w.label}</b><small>${fmtL(w.ml)}</small></button>`).join("")}</div>
+    <div class="water-meter" role="img" aria-label="${fmtL(ml)} de ${fmtL(meta)}"><i style="width:${Math.min(100, ml / meta * 100)}%"></i>${[1, 2, 3].map(n => `<span class="tick" style="left:${n * 1000 / meta * 100}%"></span>`).join("")}</div>
+    <div class="water-sum">3 termos de 1 L + medio termo = <b>${fmtL(meta)}</b></div>
   </div>`;
 
   const R = RESUMEN;
@@ -580,7 +582,7 @@ function sheetWeight() {
 function sheetSettings() {
   const r = state.settings.reminders;
   const perm = "Notification" in window ? Notification.permission : "unsupported";
-  const labels = { desayuno: "Desayuno", suplementos: "Suplementos", almuerzo: "Almuerzo", snack: "Snack", cena: "Cena", agua1: "Agua · termo AM", agua2: "Agua · termo medio día", agua3: "Agua · termo PM", resumen: "Reporte (domingos)" };
+  const labels = { desayuno: "Desayuno", suplementos: "Suplementos", almuerzo: "Almuerzo", snack: "Snack", cena: "Cena", agua1: "Agua · termo AM", agua2: "Agua · termo medio día", agua3: "Agua · termo PM", agua4: "Agua · medio termo", resumen: "Reporte (domingos)" };
   return `<h2>Ajustes</h2>
   <div class="sheet-sec"><div class="lbl">Tu nombre</div><input class="field" id="in-name" value="${esc(state.settings.name)}" maxlength="24"></div>
   ${typeof syncSettingsHtml === "function" ? syncSettingsHtml() : ""}

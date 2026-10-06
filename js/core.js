@@ -22,6 +22,15 @@ const STREAK_MIN_PCT = 80;
 const WEEKLY_WORKOUT_GOAL = 4;
 const STEPS_GOAL = 8000;
 const WEIGH_EVERY_DAYS = 15;
+// Meta del plan: 3,5 L. El plan pide 3 termos de 1 L (AM, medio día y PM); el medio termo completa los 3,5 L.
+const WATER = [
+  { label: "Termo AM", ml: 1000 },
+  { label: "Termo medio día", ml: 1000 },
+  { label: "Termo PM", ml: 1000 },
+  { label: "Medio termo", ml: 500 }
+];
+const waterMl = d => WATER.reduce((a, w, i) => a + (d.water[i] ? w.ml : 0), 0);
+const fmtL = ml => String(+(ml / 1000).toFixed(1)).replace(".", ",") + " L";
 const LEVELS = [
   { n: 1, name: "Inicio", xp: 0 },
   { n: 2, name: "En marcha", xp: 300 },
@@ -51,7 +60,7 @@ const DEFAULT_REMINDERS = {
   enabled: false,
   times: {
     desayuno: "08:00", suplementos: "08:30", almuerzo: "13:00", snack: "15:30", cena: "18:00",
-    agua1: "10:00", agua2: "14:00", agua3: "18:30", resumen: "19:00"
+    agua1: "10:00", agua2: "14:00", agua3: "18:30", agua4: "20:00", resumen: "19:00"
   }
 };
 
@@ -67,7 +76,7 @@ function defaultDay() {
       snack: { done: false, sel: { proteina: 0 } },
       cena: { done: false, sel: { proteina: 0, carbohidrato: 0, grasas: 0 } }
     },
-    water: [false, false, false],
+    water: WATER.map(() => false),
     supplements: { proteina: false, creatina: false },
     aguacate: false,
     workouts: [],
@@ -94,7 +103,7 @@ function normalizeDay(raw) {
     const m = raw.meals && raw.meals[k];
     if (m) { d.meals[k].done = !!m.done; d.meals[k].sel = Object.assign(d.meals[k].sel, m.sel || {}); }
   }
-  if (Array.isArray(raw.water)) d.water = [0, 1, 2].map(i => !!raw.water[i]);
+  if (Array.isArray(raw.water)) d.water = WATER.map((_, i) => !!raw.water[i]);
   if (raw.supplements) { d.supplements.proteina = !!raw.supplements.proteina; d.supplements.creatina = !!raw.supplements.creatina; }
   d.aguacate = !!raw.aguacate;
   d.workouts = Array.isArray(raw.workouts) ? raw.workouts : [];
@@ -324,7 +333,8 @@ function pendingReminders(k, settings) {
     { id: "cena", at: t.cena, pending: !tasks.cena, title: "Hora de la cena", body: "Última comida del plan de hoy." },
     { id: "agua1", at: t.agua1, pending: !d.water[0], title: "Termo de la mañana", body: "Lleva tu termo de 1 L." },
     { id: "agua2", at: t.agua2, pending: !d.water[1], title: "Termo del mediodía", body: "Vas por la mitad de tu meta de agua." },
-    { id: "agua3", at: t.agua3, pending: !d.water[2], title: "Termo de la tarde", body: "Cierra tu meta de 3,5 L." }
+    { id: "agua3", at: t.agua3, pending: !d.water[2], title: "Termo de la tarde", body: "Con este llegas a 3 L." },
+    { id: "agua4", at: t.agua4, pending: !d.water[3], title: "Medio termo", body: "500 ml más y completas tus 3,5 L." }
   ];
   if (keyToDate(k).getDay() === 0) list.push({ id: "resumen", at: t.resumen, pending: true, title: "Tu reporte semanal está listo", body: "Mira cómo te fue esta semana." });
   return list;

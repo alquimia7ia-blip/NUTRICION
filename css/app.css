@@ -406,3 +406,16 @@ details.more[open] summary::before{content:"– "}
 .cal-w-l .cal-w{position:static;transform:none}
 .reg-mood{font-size:24px;width:36px;text-align:center;flex:0 0 auto}
 .xp-pop.soft{color:#1B7FB8;font-size:15px}
+/* agua: 4 envases que suman la meta */
+.water-card{background:#fff;border:2px solid var(--line);border-radius:var(--r-md);padding:10px}
+.water-card .water-row{grid-template-columns:repeat(4,1fr);gap:6px}
+.water-card .bottle{padding:10px 2px 8px;border-width:1.5px}
+.water-card .bottle b{font-size:11px;line-height:1.2;text-align:center}
+.bottle-slot{height:58px;display:flex;align-items:flex-end;margin-bottom:6px}
+.bottle-slot .bottle-body{margin-bottom:0}
+.bottle.half .bottle-body{height:32px}
+.water-meter{position:relative;height:12px;border-radius:100px;background:#EAF5FB;margin:12px 4px 0;overflow:hidden}
+.water-meter i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#5BB8EC,#2D9CDB);border-radius:100px;transition:width .5s}
+.water-meter .tick{position:absolute;top:2px;bottom:2px;width:2px;margin-left:-1px;background:#fff;opacity:.9}
+.water-sum{text-align:center;font-size:11.5px;font-weight:700;color:var(--ink-soft);margin-top:7px}
+.water-sum b{color:#1B7FB8}

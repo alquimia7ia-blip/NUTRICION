@@ -8,7 +8,7 @@ const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SE
 
 const DEFAULT_TIMES: Record<string, string> = {
   desayuno: "08:00", suplementos: "08:30", almuerzo: "13:00", snack: "15:30", cena: "18:00",
-  agua1: "10:00", agua2: "14:00", agua3: "18:30", resumen: "19:00",
+  agua1: "10:00", agua2: "14:00", agua3: "18:30", agua4: "20:00", resumen: "19:00",
 };
 const WINDOW_MIN = 20;
 const WEIGH_EVERY_DAYS = 15;
@@ -46,7 +46,8 @@ function reminders(d: Day, times: Record<string, string>, sunday: boolean) {
     { id: "cena", pending: !meal("cena"), title: "Hora de la cena", body: "Última comida del plan de hoy." },
     { id: "agua1", pending: !w[0], title: "Termo de la mañana", body: "Lleva tu termo de 1 L." },
     { id: "agua2", pending: !w[1], title: "Termo del mediodía", body: "Vas por la mitad de tu meta de agua." },
-    { id: "agua3", pending: !w[2], title: "Termo de la tarde", body: "Cierra tu meta de 3,5 L." },
+    { id: "agua3", pending: !w[2], title: "Termo de la tarde", body: "Con este llegas a 3 L." },
+    { id: "agua4", pending: !w[3], title: "Medio termo", body: "500 ml más y completas tus 3,5 L." },
   ];
   if (sunday) list.push({ id: "resumen", pending: true, title: "Tu reporte semanal está listo", body: "Mira cómo te fue esta semana." });
   return list.map((r) => ({ ...r, at: times[r.id] ?? DEFAULT_TIMES[r.id] }));

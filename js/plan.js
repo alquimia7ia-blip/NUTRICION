@@ -245,7 +245,7 @@ const OPCION_CORTA = {
 /* Resúmenes visuales del resto del plan: [ícono, título corto, dato]. El texto original se muestra al tocar. */
 const RESUMEN = {
   objetivo: [["🔥", "Bajar grasa"], ["💪", "Cuidar el músculo"], ["🏃", "Rendimiento"], ["🌿", "Digestión y energía"]],
-  hidratacion: ["💧", "Agua", "3,5 L · 3 termos de 1 L"],
+  hidratacion: ["💧", "Agua", "3,5 L · 3 termos de 1 L + medio"],
   suplementos: { proteina: ["proteina", "Proteína ISO", "1 scoop al día"], creatina: ["creatina", "Creatina", "8 gr al día"] },
   aguacate: ["🥑", "Aguacate", "60 gr al día"],
   bebidas: [["🥛", "Bebida vegetal", "sin azúcar"], ["🌺", "Jamaica", "en jarra"], ["🍓", "Infusión de frutas", "con hierbabuena"], ["🍋", "Agua o soda", "con limón"]],

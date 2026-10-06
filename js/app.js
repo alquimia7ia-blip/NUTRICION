@@ -91,7 +91,7 @@ const actions = {
     if (!was) { ui.open.delete(v); ui.closed.add(v); }
     toggleTask(d => { d.meals[v].done = !was; }, el, "meal-" + v, d => d.meals[v].done);
   },
-  water: (v, el) => toggleTask(d => { d.water[+v] = !d.water[+v]; }, el, "water" + v, d => d.water[+v], d => `💧 ${d.water.filter(Boolean).length}/3`),
+  water: (v, el) => toggleTask(d => { d.water[+v] = !d.water[+v]; }, el, "water" + v, d => d.water[+v], d => `💧 ${fmtL(waterMl(d))}`),
   supp: (v, el) => toggleTask(d => { d.supplements[v] = !d.supplements[v]; }, el, "supp-" + v, d => d.supplements[v], d => `💊 ${+d.supplements.proteina + +d.supplements.creatina}/2`),
   aguacate: (v, el) => toggleTask(d => { d.aguacate = !d.aguacate; }, el, "aguacate", d => d.aguacate),
   steps: v => { editDay(ui.date, d => { d.steps = +d.steps === +v ? "" : v; }); render(); },
