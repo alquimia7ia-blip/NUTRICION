@@ -264,11 +264,8 @@ function mealBody(m, k, withButton) {
   return h;
 }
 
-// Arepa antioqueña dibujada: el emoji 🫓 no existe en muchos celulares y no se parece a una arepa.
-const AREPA_SVG = `<svg class="ic-svg" viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="51" rx="28" ry="6" fill="#000" opacity=".08"/><path d="M2 30v7c0 9.4 13.4 17 30 17s30-7.6 30-17v-7z" fill="#E4CC98"/><ellipse cx="32" cy="30" rx="30" ry="17" fill="#FFF8E6" stroke="#DEC48E" stroke-width="1.6"/><g fill="#B97A35"><ellipse cx="18" cy="25" rx="3.6" ry="1.8" opacity=".5"/><ellipse cx="38" cy="20" rx="2.8" ry="1.4" opacity=".45"/><ellipse cx="46" cy="33" rx="4" ry="2" opacity=".5"/><ellipse cx="27" cy="38" rx="3" ry="1.5" opacity=".45"/><ellipse cx="33" cy="29" rx="1.8" ry="1" opacity=".55"/><ellipse cx="11" cy="32" rx="2" ry="1.1" opacity=".4"/><ellipse cx="53" cy="25" rx="2" ry="1" opacity=".4"/><ellipse cx="40" cy="41" rx="1.6" ry=".9" opacity=".4"/></g><ellipse cx="23" cy="21" rx="10" ry="3.4" fill="#fff" opacity=".75"/></svg>`;
-const icono = ic => ic === "arepa" ? AREPA_SVG : ic;
 
-const EXTRA_ICON = { Verduras: "🥦", Vegetales: "🥦", Fruta: "🍎", Bebida: "🥤", "Aguacate diario": "🥑" };
+const EXTRA_ICON = { Verduras: "🥦", Vegetales: "🥦", Fruta: "🍎", Bebida: "vaso", "Aguacate diario": "🥑" };
 // Acompañantes de la comida (verduras, fruta, bebida…): tarjetas que muestran el texto del plan al tocarlas.
 function extrasTiles(cfg) {
   if (!cfg.extras || !cfg.extras.length) return "";
