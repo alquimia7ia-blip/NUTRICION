@@ -1,8 +1,8 @@
-const CACHE = "miplan-v2-13";
+const CACHE = "miplan-v2-14";
 const SHELL = ["./", "index.html", "css/app.css", "js/plan.js", "js/core.js", "js/food-icons.js", "js/ui.js", "js/app.js", "js/vendor/supabase-2.117.2.js", "js/sync.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon.svg"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
@@ -16,7 +16,8 @@ self.addEventListener("fetch", e => {
   if (!cacheable) return;
   e.respondWith(caches.open(CACHE).then(async c => {
     const hit = await c.match(e.request, { ignoreSearch: url.origin === location.origin });
-    const net = fetch(e.request).then(r => { if (r.ok) c.put(e.request, r.clone()); return r; }).catch(() => hit);
+    const own = url.origin === location.origin;
+    const net = (own ? fetch(url.href, { cache: "no-cache" }) : fetch(e.request)).then(r => { if (r.ok) c.put(e.request, r.clone()); return r; }).catch(() => hit);
     return hit || net;
   }));
 });

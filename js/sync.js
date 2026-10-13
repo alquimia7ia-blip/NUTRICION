@@ -25,7 +25,8 @@ function syncInit() {
       setSyncMeta({ userId: sync.user.id });
       syncNow();
     }
-    if (ui.sheet && ui.sheet.kind === "settings") renderSheet();
+    if (event === "PASSWORD_RECOVERY") { actions.sheet("settings"); toast("Escribe tu nueva contraseña y toca Guardar"); }
+    else if (ui.sheet && ui.sheet.kind === "settings") renderSheet();
   });
   onSave(() => { if (!sync.user) return; clearTimeout(sync.timer); sync.timer = setTimeout(syncNow, 1500); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && sync.user) syncNow(); });
@@ -157,6 +158,7 @@ function syncSettingsHtml() {
     <input class="field" id="in-pass" type="password" autocomplete="current-password" placeholder="Contraseña (mínimo 6)" style="margin-top:8px">
     <div class="row-2" style="margin-top:8px"><button class="btn btn-primary" data-a="signInPw">Entrar</button>
       <button class="btn btn-ghost" data-a="signUpPw">Crear cuenta</button></div>
+    <button class="link-btn small" style="margin-top:10px;font-weight:700;color:var(--muted);background:none;border:0;padding:0;text-decoration:underline" data-a="resetPw">Olvidé mi contraseña</button>
     ${sync.info ? `<p class="small" style="font-weight:700;margin-top:10px">${esc(sync.info)}</p>` : ""}
     ${sync.status ? `<p class="small" style="color:var(--danger);font-weight:700;margin-top:8px">${esc(sync.status)}</p>` : ""}
   </div>`;
@@ -188,7 +190,7 @@ Object.assign(actions, {
       sync.info = "";
       sync.status = /registered|exists/i.test(error.message) ? "Ese correo ya tiene cuenta: toca «Entrar»." : error.status === 429 ? "Espera un minuto antes de intentar otra vez." : "No se pudo crear la cuenta. Revisa tu conexión.";
     } else if (data.user && data.user.identities && !data.user.identities.length) {
-      sync.info = ""; sync.status = "Ese correo ya tiene cuenta: toca «Entrar».";
+      sync.info = ""; sync.status = "Ese correo ya tiene cuenta: toca «Entrar» (o «Olvidé mi contraseña»).";
     } else if (!data.session) {
       sync.status = ""; sync.info = `Listo. Te llegó un correo a ${f.email}: toca «Confirm email address». Después vuelve a esta app, escribe tu contraseña y toca «Entrar».`;
     } else { sync.status = ""; sync.info = ""; }
@@ -200,6 +202,15 @@ Object.assign(actions, {
     const { error } = await sync.client.auth.updateUser({ password });
     toast(error ? "No se pudo guardar. Intenta de nuevo." : "Contraseña guardada");
     if (!error) document.getElementById("in-newpass").value = "";
+  },
+  resetPw: async () => {
+    const email = (document.getElementById("in-email").value || "").trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) { toast("Escribe tu correo arriba"); return; }
+    sync.sentTo = email;
+    const { error } = await sync.client.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    sync.status = error ? (error.status === 429 ? "Supabase solo envía 2 correos por hora. Intenta más tarde." : "No se pudo enviar. Revisa tu conexión.") : "";
+    sync.info = error ? "" : `Te enviamos un correo a ${email}. Ábrelo y toca el enlace: se abre la app en el navegador, ya con tu sesión. Ahí ve a Ajustes, escribe tu nueva contraseña y toca Guardar.`;
+    renderSheet();
   },
   syncNow: () => { syncNow(); toast("Sincronizando…"); },
   testPush: async () => {

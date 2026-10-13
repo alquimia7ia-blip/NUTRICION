@@ -292,6 +292,14 @@ function init() {
     reminderTick();
     if (!ui.sheet && !document.activeElement.matches("textarea,input")) render();
   });
-  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(e => console.warn("SW", e));
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    // Si había una versión instalada y llega una nueva, recarga una vez para mostrarla.
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(r => {
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) r.update().catch(() => {}); });
+    }).catch(e => console.warn("SW", e));
+  }
 }
 init();
