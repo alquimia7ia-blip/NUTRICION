@@ -146,6 +146,9 @@ function syncSettingsHtml() {
         <div class="d">${sync.status || (last ? "Sincronizado " + new Date(last).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) : "Sincronizando…")}</div></div>
         <button class="icon-btn" data-a="syncNow" aria-label="Sincronizar ahora">${I.sync}</button></div>
       ${state.settings.reminders.enabled && localStorage.getItem("miplan.push") === "1" ? `<button class="btn btn-ghost" style="margin-top:8px" data-a="testPush">${I.bell} Enviar notificación de prueba</button>` : ""}
+      <div class="lbl" style="margin-top:14px">Tu contraseña · para entrar en la app instalada</div>
+      <div class="row-2" style="margin-top:6px"><input class="field" id="in-newpass" type="password" autocomplete="new-password" placeholder="Contraseña">
+      <button class="btn btn-ghost" data-a="setPassword">Guardar</button></div>
       <button class="btn btn-ghost" style="margin-top:8px" data-a="signOut">Cerrar sesión</button></div>`;
   }
   return `<div class="sheet-sec"><div class="lbl">Cuenta y sincronización</div>
@@ -190,6 +193,13 @@ Object.assign(actions, {
       sync.status = ""; sync.info = `Listo. Te llegó un correo a ${f.email}: toca «Confirm email address». Después vuelve a esta app, escribe tu contraseña y toca «Entrar».`;
     } else { sync.status = ""; sync.info = ""; }
     renderSheet();
+  },
+  setPassword: async () => {
+    const password = document.getElementById("in-newpass").value || "";
+    if (password.length < 6) { toast("Mínimo 6 caracteres"); return; }
+    const { error } = await sync.client.auth.updateUser({ password });
+    toast(error ? "No se pudo guardar. Intenta de nuevo." : "Contraseña guardada");
+    if (!error) document.getElementById("in-newpass").value = "";
   },
   syncNow: () => { syncNow(); toast("Sincronizando…"); },
   testPush: async () => {
