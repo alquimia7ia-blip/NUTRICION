@@ -39,6 +39,8 @@ const I = {
   download: S('<path d="M12 3v12M7 10l5 5 5-5M5 20h14"/>'),
   upload: S('<path d="M12 21V9M7 14l5-5 5 5M5 4h14"/>'),
   mail: S('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'),
+  idea: S('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z"/>'),
+  close: S('<path d="M6 6l12 12M18 6 6 18"/>', 'stroke-width="2.5"'),
   sync: S('<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 13a8 8 0 0 0 14.5 4.5L20 16M4 4v4h4M20 20v-4h-4"/>'),
   int1: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="14" width="4" height="6" rx="1" fill="currentColor"/><rect x="10" y="9" width="4" height="11" rx="1"/><rect x="16" y="4" width="4" height="16" rx="1"/></svg>`,
   int2: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="14" width="4" height="6" rx="1" fill="currentColor"/><rect x="10" y="9" width="4" height="11" rx="1" fill="currentColor"/><rect x="16" y="4" width="4" height="16" rx="1"/></svg>`,
@@ -60,7 +62,9 @@ function render() {
   renderTop();
   renderTabbar();
   const r = { hoy: renderHoy, plan: renderPlan, progreso: renderProgreso, registro: renderRegistro, informe: renderInforme }[ui.tab];
-  $screen().innerHTML = r();
+  const scr = $screen();
+  scr.innerHTML = r();
+  if (ui.enter) { scr.classList.remove("enter"); void scr.offsetWidth; scr.classList.add("enter"); ui.enter = false; }
   // Deja visible la opción elegida en cada fila deslizable de comidas.
   $screen().querySelectorAll(".opt-row").forEach(row => {
     const on = row.querySelector(".on");
@@ -78,7 +82,8 @@ function renderTop() {
       <div><div class="hello">Hola,</div><div class="name">${esc(state.settings.name || "")}</div></div>
     </div>
     <div class="top-right">
-      <button class="level-pill" data-a="tab" data-v="progreso">Nivel ${lv.n} · ${lv.name}</button>
+      <button class="level-pill" data-a="tab" data-v="progreso" aria-label="Nivel ${lv.n} · ${lv.name}">${I.bolt}Nivel ${lv.n}</button>
+      <button class="icon-btn" data-a="sheet" data-v="feedback" aria-label="Idea o problema">${I.idea}</button>
       <button class="icon-btn" data-a="sheet" data-v="settings" aria-label="Ajustes">${I.gear}</button>
     </div>`;
 }
@@ -780,9 +785,16 @@ function renderRegistro() {
 /* ===================== SHEETS ===================== */
 function renderSheet() {
   const host = document.getElementById("sheet-host");
+  document.body.classList.toggle("sheet-open", !!ui.sheet);
   if (!ui.sheet) { host.innerHTML = ""; return; }
-  const body = { workout: sheetWorkout, weight: sheetWeight, settings: sheetSettings, celebrate: sheetCelebrate }[ui.sheet.kind]();
-  host.innerHTML = `<div class="sheet-back" data-a="closeSheet"><div class="sheet" role="dialog" aria-modal="true"><div class="grabber"></div>${body}</div></div>`;
+  const prev = host.querySelector(".sheet-body"), keep = prev && host.dataset.kind === ui.sheet.kind ? prev.scrollTop : 0;
+  const body = { workout: sheetWorkout, weight: sheetWeight, settings: sheetSettings, celebrate: sheetCelebrate, feedback: sheetFeedback }[ui.sheet.kind]();
+  const again = !!prev && host.dataset.kind === ui.sheet.kind;
+  host.dataset.kind = ui.sheet.kind;
+  host.innerHTML = `<div class="sheet-back${again ? " still" : ""}" data-a="closeSheet"><div class="sheet" role="dialog" aria-modal="true">
+    <div class="sheet-head"><div class="grabber"></div>${ui.sheet.kind === "celebrate" ? "" : `<button class="sheet-x" data-a="closeSheet" aria-label="Cerrar">${I.close}</button>`}</div>
+    <div class="sheet-body">${body}</div></div></div>`;
+  if (keep) host.querySelector(".sheet-body").scrollTop = keep;
 }
 
 function sheetWorkout() {
@@ -837,12 +849,28 @@ function sheetSettings() {
   <div class="sheet-sec"><div class="lbl">Tu horario · avisos y hora de cada comida</div>
     ${Object.entries(labels).map(([k, l]) => `<div class="set-row"><div class="t">${l}</div><input class="field" type="time" data-a="remTime" data-v="${k}" value="${r.times[k]}"></div>`).join("")}
   </div>
+  <div class="sheet-sec"><button class="set-link" data-a="sheet" data-v="feedback"><span>${I.idea}</span>Enviar una idea o un problema<b>›</b></button></div>
   <div class="sheet-sec"><div class="lbl">Respaldo</div>
     <div class="row-2"><button class="btn btn-ghost" data-a="export">${I.download} Exportar</button>
     <label class="btn btn-ghost">${I.upload} Importar<input type="file" accept="application/json" id="in-import" hidden></label></div></div>
   <div class="sheet-sec"><button class="btn btn-danger" data-a="reset">Reiniciar mis datos</button></div>
   <button class="btn btn-primary" style="margin-top:14px" data-a="closeSheet">Listo</button>`;
 }
+
+function sheetFeedback() {
+  const f = ui.sheet, list = feedbackList();
+  const pend = list.filter(x => !x.sent).length;
+  return `<h2>Idea o problema</h2><div class="sub">Cuéntame qué mejorar. Lo reviso al terminar la semana de prueba.</div>
+  <div class="sheet-sec"><div class="fb-kinds">
+    <button class="fb-kind ${f.fbKind !== "problema" ? "on" : ""}" data-a="fbKind" data-v="idea"><span>💡</span>Idea</button>
+    <button class="fb-kind ${f.fbKind === "problema" ? "on" : ""}" data-a="fbKind" data-v="problema"><span>🐞</span>Problema</button></div></div>
+  <div class="sheet-sec"><textarea class="notes" id="in-fb" maxlength="2000" placeholder="${f.fbKind === "problema" ? "¿Qué pasó? ¿Qué esperabas que pasara?" : "¿Qué te gustaría que hiciera la app?"}">${esc(f.fbText || "")}</textarea>
+    <div class="small muted" style="font-weight:700;margin-top:6px">Se guarda junto con la pantalla donde estabas: ${esc(TAB_NAMES[f.from] || "Hoy")}.</div></div>
+  <button class="btn btn-primary" style="margin-top:14px" data-a="sendFeedback">${I.check} Enviar</button>
+  ${list.length ? `<div class="sheet-sec"><div class="lbl">Enviadas · ${list.length}${pend ? ` · ${pend} por subir` : ""}</div>
+    ${list.slice(-3).reverse().map(x => `<div class="fb-item"><span>${x.kind === "problema" ? "🐞" : "💡"}</span><div>${esc(x.text.length > 90 ? x.text.slice(0, 90) + "…" : x.text)}</div></div>`).join("")}</div>` : ""}`;
+}
+const TAB_NAMES = { hoy: "Hoy", plan: "Plan", progreso: "Progreso", registro: "Registro", informe: "Informe" };
 
 function sheetCelebrate() {
   const c = ui.sheet;

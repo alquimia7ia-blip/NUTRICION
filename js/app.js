@@ -64,7 +64,7 @@ function checkCelebrations() {
 }
 
 const actions = {
-  tab: v => { ui.tab = v; ui.sheet = null; render(); window.scrollTo(0, 0); },
+  tab: v => { if (v !== ui.tab) ui.enter = true; ui.tab = v; ui.sheet = null; render(); window.scrollTo(0, 0); },
   day: v => { const n = addDays(ui.date, +v); if (n <= todayKey()) { ui.date = n; ui.open.clear(); ui.closed.clear(); render(); } },
   today: () => { ui.date = todayKey(); render(); },
   openDay: v => { ui.date = v; ui.tab = "hoy"; render(); window.scrollTo(0, 0); },
@@ -111,7 +111,18 @@ const actions = {
   mood: v => { editDay(ui.date, d => { d.mood = d.mood === +v ? null : +v; }); render(); },
   month: v => { if (v <= todayKey().slice(0, 7)) { ui.regMonth = v; render(); } },
   week: v => { const n = addDays(ui.reportWeek, +v); if (n <= weekStart(todayKey())) { ui.reportWeek = n; render(); } },
-  sheet: v => { ui.sheet = v === "workout" ? { kind: "workout", type: null, duration: 30, intensity: 2, routineName: "" } : { kind: v }; renderSheet(); },
+  sheet: v => { ui.sheet = v === "workout" ? { kind: "workout", type: null, duration: 30, intensity: 2, routineName: "" } : v === "feedback" ? { kind: "feedback", fbKind: "idea", fbText: "", from: ui.tab } : { kind: v }; renderSheet(); },
+  fbKind: v => { ui.sheet.fbKind = v; ui.sheet.fbText = document.getElementById("in-fb").value; renderSheet(); },
+  sendFeedback: () => {
+    const text = (document.getElementById("in-fb").value || "").trim();
+    if (!text) { toast("Escribe tu idea o el problema"); return; }
+    const list = feedbackList();
+    list.push({ id: uuid4(), kind: ui.sheet.fbKind === "problema" ? "problema" : "idea", text, screen: ui.sheet.from, created_at: new Date().toISOString(), sent: false });
+    saveFeedback(list);
+    ui.sheet = null; renderSheet();
+    toast("¡Gracias! Quedó guardado 💡");
+    if (typeof flushFeedback === "function") flushFeedback();
+  },
   closeSheet: () => { ui.sheet = null; render(); checkCelebrations(); },
   wType: v => { ui.sheet.type = v; keepRoutineName(); renderSheet(); },
   wDur: v => { ui.sheet.duration = +v; keepRoutineName(); renderSheet(); },
@@ -194,6 +205,40 @@ const actions = {
   }
 };
 function keepRoutineName() { const el = document.getElementById("in-routine"); if (el && ui.sheet) ui.sheet.routineName = el.value; }
+
+/* ---------- ideas y problemas (se suben en sync.js) ---------- */
+const FB_KEY = "miplan.feedback";
+function feedbackList() { try { return JSON.parse(localStorage.getItem(FB_KEY) || "[]"); } catch { return []; } }
+function saveFeedback(list) { try { localStorage.setItem(FB_KEY, JSON.stringify(list)); } catch {} }
+function uuid4() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+}
+
+/* ---------- deslizar hacia abajo para cerrar la hoja ---------- */
+let drag = null;
+document.addEventListener("touchstart", e => {
+  const sheet = e.target.closest(".sheet");
+  if (!sheet || !ui.sheet) return;
+  const body = sheet.querySelector(".sheet-body");
+  const onHead = !!e.target.closest(".sheet-head");
+  if (!onHead && (body.scrollTop > 0 || e.target.closest("input,textarea,select"))) return;
+  drag = { sheet, y0: e.touches[0].clientY, dy: 0, onHead };
+}, { passive: true });
+document.addEventListener("touchmove", e => {
+  if (!drag) return;
+  drag.dy = Math.max(0, e.touches[0].clientY - drag.y0);
+  if (!drag.onHead && drag.sheet.querySelector(".sheet-body").scrollTop > 0) { drag = null; return; }
+  drag.sheet.style.transition = "none";
+  drag.sheet.style.transform = `translateY(${drag.dy}px)`;
+}, { passive: true });
+document.addEventListener("touchend", () => {
+  if (!drag) return;
+  const { sheet, dy } = drag; drag = null;
+  sheet.style.transition = "transform .2s ease";
+  if (dy > 110) { sheet.style.transform = "translateY(100%)"; setTimeout(() => actions.closeSheet(), 180); }
+  else sheet.style.transform = "";
+});
 
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-a]");

@@ -85,6 +85,7 @@ async function syncNow() {
       const { error } = await db.from("settings").upsert({ data, updated_at: state.settings.updatedAt }, { onConflict: "user_id" });
       if (error) throw error;
     }
+    await flushFeedback();
     setSyncMeta({ lastPush: startedAt, lastSync: Date.now() });
     sync.status = "";
     if (changed && (!document.activeElement || !document.activeElement.matches("textarea,input"))) render();
@@ -95,6 +96,17 @@ async function syncNow() {
     sync.busy = false;
     if (ui.sheet && ui.sheet.kind === "settings") renderSheet();
   }
+}
+
+async function flushFeedback() {
+  if (!sync.client || !sync.user || !navigator.onLine) return;
+  const list = feedbackList(), pend = list.filter(x => !x.sent);
+  if (!pend.length) return;
+  const { error } = await sync.client.from("feedback").upsert(
+    pend.map(({ id, kind, text, screen, created_at }) => ({ id, kind, text, screen, created_at })), { onConflict: "id", ignoreDuplicates: true });
+  if (error) { console.warn("feedback", error); return; }
+  const ids = new Set(pend.map(x => x.id));
+  saveFeedback(feedbackList().map(x => ids.has(x.id) ? { ...x, sent: true } : x));
 }
 
 /* ---------- push ---------- */
@@ -142,18 +154,20 @@ function syncSettingsHtml() {
   if (!sync.client) return "";
   if (sync.user) {
     const last = syncMeta().lastSync;
-    return `<div class="sheet-sec"><div class="lbl">Cuenta y sincronización</div>
-      <div class="set-row"><div><div class="t">${esc(sync.user.email)}</div>
-        <div class="d">${sync.status || (last ? "Sincronizado " + new Date(last).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) : "Sincronizando…")}</div></div>
+    const when = sync.status || (last ? "Guardado en la nube a las " + new Date(last).toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" }) : "Guardando en la nube…");
+    return `<div class="sheet-sec"><div class="lbl">Tu cuenta</div>
+      <div class="acct"><div class="acct-ic">${I.check}</div>
+        <div class="acct-txt"><div class="t">Sesión iniciada</div><div class="d">${esc(sync.user.email)}</div><div class="d ${sync.status ? "err" : ""}">${esc(when)}</div></div>
         <button class="icon-btn" data-a="syncNow" aria-label="Sincronizar ahora">${I.sync}</button></div>
-      ${state.settings.reminders.enabled && localStorage.getItem("miplan.push") === "1" ? `<button class="btn btn-ghost" style="margin-top:8px" data-a="testPush">${I.bell} Enviar notificación de prueba</button>` : ""}
-      <div class="lbl" style="margin-top:14px">Tu contraseña · para entrar en la app instalada</div>
-      <div class="row-2" style="margin-top:6px"><input class="field" id="in-newpass" type="password" autocomplete="new-password" placeholder="Contraseña">
-      <button class="btn btn-ghost" data-a="setPassword">Guardar</button></div>
-      <button class="btn btn-ghost" style="margin-top:8px" data-a="signOut">Cerrar sesión</button></div>`;
+      <p class="small muted" style="font-weight:700;margin-top:8px">No tienes que volver a entrar: la sesión queda guardada en este celular y tu progreso se sube solo.</p>
+      ${state.settings.reminders.enabled && localStorage.getItem("miplan.push") === "1" ? `<button class="btn btn-ghost" style="margin-top:10px" data-a="testPush">${I.bell} Enviar notificación de prueba</button>` : ""}
+      <details class="mini-det"><summary>Cambiar contraseña</summary>
+        <div class="row-2" style="margin-top:8px"><input class="field" id="in-newpass" type="password" autocomplete="new-password" placeholder="Nueva contraseña">
+        <button class="btn btn-ghost" data-a="setPassword">Guardar</button></div></details>
+      <button class="text-btn danger" data-a="signOut">Cerrar sesión</button></div>`;
   }
   return `<div class="sheet-sec"><div class="lbl">Cuenta y sincronización</div>
-    <p class="small muted" style="font-weight:600;margin-bottom:8px">Entra para guardar tus datos en la nube y verlos en el celular y en el computador. Gratis.</p>
+    <p class="small muted" style="font-weight:600;margin-bottom:8px">Entra una sola vez: la sesión queda guardada en este celular y tu progreso se sube solo a la nube.</p>
     <input class="field" id="in-email" type="email" inputmode="email" autocomplete="email" placeholder="tu@correo.com" value="${esc(sync.sentTo)}">
     <input class="field" id="in-pass" type="password" autocomplete="current-password" placeholder="Contraseña (mínimo 6)" style="margin-top:8px">
     <div class="row-2" style="margin-top:8px"><button class="btn btn-primary" data-a="signInPw">Entrar</button>
@@ -200,7 +214,7 @@ Object.assign(actions, {
     const password = document.getElementById("in-newpass").value || "";
     if (password.length < 6) { toast("Mínimo 6 caracteres"); return; }
     const { error } = await sync.client.auth.updateUser({ password });
-    toast(error ? "No se pudo guardar. Intenta de nuevo." : "Contraseña guardada");
+    toast(!error ? "Contraseña guardada" : /same|different/i.test(error.message) ? "Esa ya es tu contraseña actual" : "No se pudo guardar. Intenta de nuevo.");
     if (!error) document.getElementById("in-newpass").value = "";
   },
   resetPw: async () => {
