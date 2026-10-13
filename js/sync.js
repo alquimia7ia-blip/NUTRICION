@@ -7,7 +7,7 @@ const VAPID_PUBLIC = "BCLnXPhRv0fow2q4xopERKaBY9BvYg5IW9t_Y_EymOpxV70aG6JHPv2jd1
 const SYNC_META = "miplan.sync";
 const SYNCED_SETTINGS = ["name", "reminders", "routines", "seenBadges", "seenLevel", "seenChallenges", "seededFitmao", "initialized", "tz"];
 
-const sync = { client: null, user: null, busy: false, timer: null, sentTo: "", status: "" };
+const sync = { client: null, user: null, busy: false, timer: null, sentTo: "", status: "", info: "" };
 const syncMeta = () => { try { return JSON.parse(localStorage.getItem(SYNC_META) || "{}"); } catch { return {}; } };
 const setSyncMeta = m => localStorage.setItem(SYNC_META, JSON.stringify({ ...syncMeta(), ...m }));
 
@@ -149,30 +149,47 @@ function syncSettingsHtml() {
       <button class="btn btn-ghost" style="margin-top:8px" data-a="signOut">Cerrar sesión</button></div>`;
   }
   return `<div class="sheet-sec"><div class="lbl">Cuenta y sincronización</div>
-    <p class="small muted" style="font-weight:600;margin-bottom:8px">Entra con tu correo para ver tus datos en el celular y en el computador. Gratis, sin contraseña.</p>
+    <p class="small muted" style="font-weight:600;margin-bottom:8px">Entra para guardar tus datos en la nube y verlos en el celular y en el computador. Gratis.</p>
     <input class="field" id="in-email" type="email" inputmode="email" autocomplete="email" placeholder="tu@correo.com" value="${esc(sync.sentTo)}">
-    <button class="btn btn-primary" style="margin-top:8px" data-a="sendLink">${I.mail} ${sync.sentTo ? "Reenviar enlace" : "Enviarme el enlace"}</button>
-    ${sync.sentTo ? `<p class="small" style="font-weight:700;margin-top:10px">Revisa ${esc(sync.sentTo)}: toca el enlace del correo, o escribe aquí el código si viene uno.</p>
-      <div class="row-2" style="margin-top:8px"><input class="field" id="in-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Código">
-      <button class="btn btn-ghost" data-a="verifyOtp">Entrar</button></div>` : ""}
+    <input class="field" id="in-pass" type="password" autocomplete="current-password" placeholder="Contraseña (mínimo 6)" style="margin-top:8px">
+    <div class="row-2" style="margin-top:8px"><button class="btn btn-primary" data-a="signInPw">Entrar</button>
+      <button class="btn btn-ghost" data-a="signUpPw">Crear cuenta</button></div>
+    ${sync.info ? `<p class="small" style="font-weight:700;margin-top:10px">${esc(sync.info)}</p>` : ""}
     ${sync.status ? `<p class="small" style="color:var(--danger);font-weight:700;margin-top:8px">${esc(sync.status)}</p>` : ""}
   </div>`;
 }
 
+const authForm = () => {
+  const email = (document.getElementById("in-email").value || "").trim();
+  const password = document.getElementById("in-pass").value || "";
+  if (!/^\S+@\S+\.\S+$/.test(email)) { toast("Escribe un correo válido"); return null; }
+  if (password.length < 6) { toast("La contraseña debe tener mínimo 6 caracteres"); return null; }
+  sync.sentTo = email;
+  return { email, password };
+};
+
 Object.assign(actions, {
-  sendLink: async () => {
-    const email = (document.getElementById("in-email").value || "").trim();
-    if (!/^\S+@\S+\.\S+$/.test(email)) { toast("Escribe un correo válido"); return; }
-    const { error } = await sync.client.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
-    sync.status = error ? (error.status === 429 ? "Espera un minuto antes de pedir otro enlace." : "No se pudo enviar el enlace. Revisa tu conexión.") : "";
-    if (!error) sync.sentTo = email;
+  signInPw: async () => {
+    const f = authForm(); if (!f) return;
+    const { error } = await sync.client.auth.signInWithPassword(f);
+    sync.info = "";
+    sync.status = !error ? "" : /confirm/i.test(error.message) ? "Primero confirma tu correo: abre el correo de Supabase y toca «Confirm email address». Luego vuelve aquí y toca Entrar."
+      : /invalid/i.test(error.message) ? "Correo o contraseña incorrectos. Si es tu primera vez, toca «Crear cuenta»."
+      : error.status === 429 ? "Demasiados intentos. Espera un minuto." : "No se pudo entrar. Revisa tu conexión.";
     renderSheet();
   },
-  verifyOtp: async () => {
-    const token = (document.getElementById("in-otp").value || "").trim();
-    if (!token) return;
-    const { error } = await sync.client.auth.verifyOtp({ email: sync.sentTo, token, type: "email" });
-    if (error) { sync.status = "Código inválido o vencido. Pide otro enlace."; renderSheet(); }
+  signUpPw: async () => {
+    const f = authForm(); if (!f) return;
+    const { data, error } = await sync.client.auth.signUp({ ...f, options: { emailRedirectTo: location.origin + location.pathname } });
+    if (error) {
+      sync.info = "";
+      sync.status = /registered|exists/i.test(error.message) ? "Ese correo ya tiene cuenta: toca «Entrar»." : error.status === 429 ? "Espera un minuto antes de intentar otra vez." : "No se pudo crear la cuenta. Revisa tu conexión.";
+    } else if (data.user && data.user.identities && !data.user.identities.length) {
+      sync.info = ""; sync.status = "Ese correo ya tiene cuenta: toca «Entrar».";
+    } else if (!data.session) {
+      sync.status = ""; sync.info = `Listo. Te llegó un correo a ${f.email}: toca «Confirm email address». Después vuelve a esta app, escribe tu contraseña y toca «Entrar».`;
+    } else { sync.status = ""; sync.info = ""; }
+    renderSheet();
   },
   syncNow: () => { syncNow(); toast("Sincronizando…"); },
   testPush: async () => {
@@ -185,7 +202,7 @@ Object.assign(actions, {
   signOut: async () => {
     await unsubscribePush();
     await sync.client.auth.signOut();
-    sync.user = null; sync.sentTo = "";
+    sync.user = null; sync.sentTo = ""; sync.info = ""; sync.status = "";
     setSyncMeta({ lastPush: 0, lastSync: 0, userId: null });
     renderSheet();
   }
